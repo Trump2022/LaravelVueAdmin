@@ -14,6 +14,11 @@ function clearTokenIfCurrent(token) {
 }
 
 async function requestJson(url, options, token) {
+    const method = (options.method ?? 'GET').toUpperCase();
+    const csrfToken = ['GET', 'HEAD', 'OPTIONS'].includes(method)
+        ? null
+        : getCookie('XSRF-TOKEN');
+
     const response = await fetch(url, {
         ...options,
         credentials: 'same-origin',
@@ -21,6 +26,7 @@ async function requestJson(url, options, token) {
             Accept: 'application/json',
             ...(options.body ? { 'Content-Type': 'application/json' } : {}),
             ...options.headers,
+            ...(csrfToken ? { 'X-XSRF-TOKEN': csrfToken } : {}),
             ...(token ? { Authorization: `Bearer ${token}` } : {}),
         },
     });
