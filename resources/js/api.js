@@ -1,3 +1,33 @@
+let csrfCookieRequest = null;
+
+async function ensureCsrfCookie() {
+    if (getCookie('XSRF-TOKEN')) {
+        return;
+    }
+
+    if (!csrfCookieRequest) {
+        csrfCookieRequest = fetch('/sanctum/csrf-cookie', {
+            credentials: 'same-origin',
+            headers: { Accept: 'application/json' },
+        })
+            .then((response) => {
+                if (!response.ok) {
+                    throw new Error('获取 CSRF cookie 失败。');
+                }
+            })
+            .finally(() => {
+                csrfCookieRequest = null;
+            });
+    }
+
+    await csrfCookieRequest;
+
+    if (!getCookie('XSRF-TOKEN')) {
+        throw new Error('服务器未返回 XSRF-TOKEN cookie。');
+    }
+}
+
+
 const tokenKey = 'admin_access_token';// 适用于jwt模式
 const tokenRotatedAtKey = 'admin_access_token_rotated_at';
 const tokenRotationIntervalMs = 30 * 60 * 1000;//30分钟更换一个token，避免token被盗用后长期有效。刷新接口会返回新的token和过期时间，前端会保存新的token和过期时间，并设置刷新定时器。
@@ -15,9 +45,16 @@ function clearTokenIfCurrent(token) {
 
 async function requestJson(url, options, token) {
     const method = (options.method ?? 'GET').toUpperCase();
-    const csrfToken = ['GET', 'HEAD', 'OPTIONS'].includes(method)
-        ? null
-        : getCookie('XSRF-TOKEN');
+    const needsCsrf = !['GET', 'HEAD', 'OPTIONS'].includes(method);
+    if (needsCsrf) {
+        await ensureCsrfCookie();
+    }
+    const csrfToken = needsCsrf ? getCookie('XSRF-TOKEN') : null;
+
+    // const method = (options.method ?? 'GET').toUpperCase();
+    // const csrfToken = ['GET', 'HEAD', 'OPTIONS'].includes(method)
+    //     ? null
+    //     : getCookie('XSRF-TOKEN');
 
     const response = await fetch(url, {
         ...options,
