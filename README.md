@@ -137,6 +137,9 @@ php artisan route:cache
 ```bash
 chown -R nginx:nginx storage bootstrap/cache
 chmod -R 775 storage bootstrap/cache
+
+# 恢复 Git 跟踪文件，撤销 chmod 导致的权限变更
+git restore bootstrap/cache storage
 ```
 
 ### Nginx 参考配置
