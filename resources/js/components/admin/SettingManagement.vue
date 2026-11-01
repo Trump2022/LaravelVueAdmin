@@ -2,7 +2,7 @@
 import { onMounted, onUnmounted, ref } from 'vue';
 import { apiRequest } from '../../api';
 
-defineProps({
+const props = defineProps({
     admin: {
         type: Object,
         required: true,
@@ -299,7 +299,9 @@ async function deleteSetting(setting) {
 }
 
 onMounted(() => {
-    loadSettings();
+    if (props.admin.can_view_settings) {
+        loadSettings();
+    }
 });
 
 onUnmounted(() => {
@@ -313,28 +315,21 @@ onUnmounted(() => {
             {{ errorMessage }}
         </p>
 
-        <div class="mb-4 flex items-center gap-3 overflow-x-auto">
+        <div class="mb-4 flex flex-wrap items-start gap-y-2">
             <el-button
-                class="shrink-0 whitespace-nowrap"
+                v-if="props.admin.can_create_settings"
                 type="primary"
+                class="mr-auto"
                 @click="showForm ? cancelForm() : startCreating()"
             >
                 {{ showForm ? '收起' : '新增设置' }}
             </el-button>
 
-            <div class="ml-auto flex min-w-[27rem] shrink-0 items-center justify-end gap-3">
-                <el-input
-                    v-model="keyword"
-                    clearable
-                    class="w-64 shrink-0"
-                    placeholder="搜索设置键或名称"
-                    @input="handleFilterChange"
-                />
-
+            <div class="mr-2 w-32 max-w-full">
                 <el-select
                     v-model="typeFilter"
                     clearable
-                    class="w-36 shrink-0"
+                    class="w-full"
                     placeholder="全部类型"
                     @change="loadSettings(1)"
                 >
@@ -346,6 +341,23 @@ onUnmounted(() => {
                     />
                 </el-select>
             </div>
+
+            <div class="mr-2 w-64 max-w-full">
+                <el-input
+                    v-model="keyword"
+                    clearable
+                    placeholder="搜索设置键或名称"
+                    @keyup.enter="loadSettings(1)"
+                />
+            </div>
+
+            <el-button
+                type="primary"
+                class="ml-auto"
+                @click="loadSettings(1)"
+            >
+                搜索
+            </el-button>
         </div>
 
         <form

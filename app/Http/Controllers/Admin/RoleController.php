@@ -28,7 +28,8 @@ class RoleController extends Controller
         $actor = $request->user('admin');
         $query = Role::query()
             ->select(['id', 'name', 'code', 'remark'])
-            ->withExists(['admins', 'permissions'])
+            // ->withExists(['admins', 'permissions'])
+            ->withExists(['admins'])
             ->orderBy('id');
 
         $actor->loadMissing('roles:id,code');
@@ -178,9 +179,12 @@ class RoleController extends Controller
             abort(403, '开发者和超管角色不能删除。');
         }
 
-        if ($role->admins()->exists() || $role->permissions()->exists()) {
-            abort(409, '角色仍有关联的管理员或权限，不能删除。');
+        if ($role->admins()->exists()) {
+            abort(409, '角色仍有关联的管理员，不能删除。');
         }
+        // if ($role->admins()->exists() || $role->permissions()->exists()) {
+        //     abort(409, '角色仍有关联的管理员或权限，不能删除。');
+        // }
 
         DB::transaction(function () use ($role): void {
             $role->admins()->detach();

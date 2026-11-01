@@ -4,6 +4,7 @@ import AdminManagement from './components/admin/AdminManagement.vue';
 import RoleManagement from './components/admin/RoleManagement.vue';
 import PermissionManagement from './components/admin/PermissionManagement.vue';
 import SettingManagement from './components/admin/SettingManagement.vue';
+import UserManagement from './components/admin/UserManagement.vue';
 import Home from './Home.vue';
 
 export const pageRouteNames = {
@@ -12,6 +13,7 @@ export const pageRouteNames = {
     roles: 'admin-roles',
     permissions: 'admin-permissions',
     settings: 'admin-settings',
+    users: 'admin-users',
 };
 
 export default createRouter({
@@ -68,9 +70,15 @@ export default createRouter({
             component: SettingManagement,
             meta: {
                 page: 'settings',
-                title: '站点设置',
+                title: '通用设置',
                 withAdmin: true,
             },
+        },
+        {
+            path: '/admin/users',
+            name: pageRouteNames.users,
+            component: UserManagement,
+            meta: { page: 'users', title: '用户列表', withAdmin: true },
         },
 
         {

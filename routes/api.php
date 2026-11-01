@@ -10,6 +10,7 @@ use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Route;
 use App\Http\Controllers\Admin\SettingController;
 use App\Http\Controllers\Web\SettingController as WebSettingController;
+use App\Http\Controllers\Admin\UserManagementController;
 
 Route::get('/user', function (Request $request) {
     return $request->user();
@@ -61,6 +62,13 @@ Route::prefix('admin')->name('admin.')->group(function () {
             Route::patch('permissions/{permission}', [PermissionController::class, 'update'])->name('permissions.update'); // 更新权限
             Route::delete('permissions/{permission}', [PermissionController::class, 'destroy'])->name('permissions.destroy'); // 删除权限
             Route::patch('permissions/{permission}/move', [PermissionController::class, 'move'])->name('permissions.move'); // 调整权限节点顺序
+
+            Route::get('users', [UserManagementController::class, 'index'])->name('users.index'); // 获取用户列表
+            Route::post('users', [UserManagementController::class, 'store'])->name('users.store'); // 创建用户
+            Route::get('users/{user}', [UserManagementController::class, 'show'])->name('users.show'); // 获取单个用户信息
+            Route::patch('users/{user}', [UserManagementController::class, 'update'])->name('users.update'); // 更新用户信息
+            Route::patch('users/{user}/password', [UserManagementController::class, 'updatePassword'])->name('users.password'); // 更新用户密码
+            Route::delete('users/{user}', [UserManagementController::class, 'destroy'])->name('users.destroy'); // 删除用户
 
             // 设置
             Route::get('settings', [SettingController::class, 'index'])->name('settings.index'); // 获取设置列表

@@ -223,6 +223,17 @@ class AuthController extends Controller
             'admin.permissions.store:post',
             'admin.admins.destroy:delete',
             'admin.roles.destroy:delete',
+            'admin.users.index:get',
+            'admin.users.store:post',
+            'admin.users.show:get',
+            'admin.users.update:patch',
+            'admin.users.password:patch',
+            'admin.users.destroy:delete',
+            'admin.settings.index:get',
+            'admin.settings.store:post',
+            'admin.settings.show:get',
+            'admin.settings.update:put',
+            'admin.settings.destroy:delete',
         ];
 
         $permissions = Permission::query()
@@ -280,6 +291,17 @@ class AuthController extends Controller
             'can_create_permissions' => $hasApiPermission('admin.permissions.store:post'),
             'can_delete_admins' => $hasApiPermission('admin.admins.destroy:delete'),
             'can_delete_roles' => $hasApiPermission('admin.roles.destroy:delete'),
+            'can_view_users' => $hasApiPermission('admin.users.index:get'),
+            'can_create_users' => $hasApiPermission('admin.users.store:post'),
+            'can_view_user_details' => $hasApiPermission('admin.users.show:get'),
+            'can_update_users' => $hasApiPermission('admin.users.update:patch'),
+            'can_reset_user_passwords' => $hasApiPermission('admin.users.password:patch'),
+            'can_delete_users' => $hasApiPermission('admin.users.destroy:delete'),
+            'can_view_settings' => $hasApiPermission('admin.settings.index:get'),
+            'can_create_settings' => $hasApiPermission('admin.settings.store:post'),
+            'can_view_setting_details' => $hasApiPermission('admin.settings.show:get'),
+            'can_update_settings' => $hasApiPermission('admin.settings.update:put'),
+            'can_delete_settings' => $hasApiPermission('admin.settings.destroy:delete'),
         ];
     }
 }

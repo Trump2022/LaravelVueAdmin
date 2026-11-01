@@ -708,11 +708,11 @@ onMounted(loadRoles);
                                     class="ml-2"
                                     size="small"
                                     type="danger"
-                                    :disabled="role.admins_exists || role.permissions_exists"
+                                    :disabled="role.admins_exists"
                                     :loading="deletingRoleId === role.id"
                                     :title="
-                                        role.admins_exists || role.permissions_exists
-                                            ? '角色仍有关联的管理员或权限，不能删除。'
+                                        role.admins_exists
+                                            ? '角色仍有关联的管理，不能删除。'
                                             : ''
                                     "
                                     >删除

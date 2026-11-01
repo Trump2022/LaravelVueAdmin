@@ -11,6 +11,8 @@ class PermissionSeeder extends Seeder
     {
         $items = [
 
+
+
             // 仪表盘
             [
                 'key' => 'dashboard',
@@ -33,14 +35,92 @@ class PermissionSeeder extends Seeder
                 'sort' => 0,
             ],
 
+
+
+
+            // 用户管理-目录
+            [
+                'key' => 'users',
+                'name' => '用户管理',
+                'type' => 1,
+                'pid' => null,
+                'icon' => 'User',
+                'sort' => 1,
+            ],
+
+            // 用户列表菜单
+            [
+                'key' => 'users_page',
+                'name' => '用户列表',
+                'type' => 2,
+                'pid' => 'users',
+                'path' => '/admin/users',
+                'component' => 'admin/UserManagement',
+                'icon' => 'Avatar',
+                'sort' => 1,
+            ],
+
+            // 用户管理 API 权限
+            [
+                'key' => 'users_index',
+                'name' => '用户列表',
+                'type' => 3,
+                'pid' => 'users_page',
+                'permission_code' => 'admin.users.index:get',
+                'sort' => 0,
+            ],
+            [
+                'key' => 'users_store',
+                'name' => '创建用户',
+                'type' => 3,
+                'pid' => 'users_page',
+                'permission_code' => 'admin.users.store:post',
+                'sort' => 1,
+            ],
+            [
+                'key' => 'users_show',
+                'name' => '查看用户详情',
+                'type' => 3,
+                'pid' => 'users_page',
+                'permission_code' => 'admin.users.show:get',
+                'sort' => 2,
+            ],
+            [
+                'key' => 'users_update',
+                'name' => '更新用户资料',
+                'type' => 3,
+                'pid' => 'users_page',
+                'permission_code' => 'admin.users.update:patch',
+                'sort' => 3,
+            ],
+            [
+                'key' => 'users_password',
+                'name' => '重置用户密码',
+                'type' => 3,
+                'pid' => 'users_page',
+                'permission_code' => 'admin.users.password:patch',
+                'sort' => 4,
+            ],
+            [
+                'key' => 'users_destroy',
+                'name' => '删除用户',
+                'type' => 3,
+                'pid' => 'users_page',
+                'permission_code' => 'admin.users.destroy:delete',
+                'sort' => 5,
+            ],
+
+
+
+
             // 权限管理目录
             [
                 'key' => 'permission',
                 'name' => '权限管理',
                 'type' => 1,
                 'pid' => null,
-                'icon' => 'Lightning',
-                'sort' => 1,
+                'icon' => 'Flag',
+                'sort' => 2,
             ],
 
             [
@@ -60,7 +140,7 @@ class PermissionSeeder extends Seeder
                 'pid' => 'permission',
                 'path' => '/admin/roles',
                 'component' => 'admin/RoleManagement',
-                'icon' => 'Grape',
+                'icon' => 'Suitcase',
                 'sort' => 1,
             ],
             [
@@ -263,16 +343,19 @@ class PermissionSeeder extends Seeder
                 'sort' => 7,
             ],
 
-            // 设置目录
+
+
+            // 设置-目录
             [
                 'key' => 'settings',
                 'name' => '设置',
                 'type' => 1,
                 'pid' => null,
                 'icon' => 'Setting',
-                'sort' => 2,
+                'sort' => 3,
             ],
 
+            // 设置-菜单
             [
                 'key' => 'settings_page',
                 'name' => '通用设置',
@@ -325,6 +408,8 @@ class PermissionSeeder extends Seeder
                 'permission_code' => 'admin.settings.destroy:delete',
                 'sort' => 4,
             ],
+
+
         ];
 
         $ids = [];

@@ -462,14 +462,14 @@ onMounted(loadPermissionTree);
 <template>
     <section class="mt-6 w-full rounded-xl bg-white p-6 shadow">
         <div class="mb-4">
-            <el-button
+            <button
                 v-if="props.admin.can_create_permissions"
-                type="primary"
-                @click="
-                showCreateForm = !showCreateForm;
-                errorMessage = ''; " >
+                type="button"
+                class="rounded-lg bg-blue-600 px-4 py-2 text-sm font-medium text-white shadow-sm hover:bg-blue-700"
+                @click="showCreateForm = !showCreateForm; errorMessage = ''"
+            >
                 {{ showCreateForm ? '收起新增表单' : '新增菜单/权限' }}
-            </el-button>
+            </button>
         </div>
 
         <p v-if="errorMessage" class="mb-4 text-sm text-red-600">
