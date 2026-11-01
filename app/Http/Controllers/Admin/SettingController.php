@@ -116,6 +116,21 @@ class SettingController extends Controller
      */
     private function validateSetting(Request $request, ?Setting $setting = null)
     {
+        //type=5时, json_value最终保存的数组结构如下：
+        // {
+        //     "fields": [
+        //         {"title": "列 1", "key": "field_1"},
+        //         {"title": "列 2", "key": "field_2"},
+        //         {"title": "列 3", "key": "field_3"},
+        //         {"title": "列 4", "key": "field_4"},
+        //     ],
+        //     "data": [
+        //         {"field_1": "value1", "field_2": "value2", "field_3": "value3", "field_4": "value4"},
+        //         {"field_1": "value1x", "field_2": "value2y", "field_3": "value3c", "field_4": "value4z"}
+        //     ]
+        // }
+        // type=6的的情况不会进来这里, 需另外单独处理, 因为type=6是特殊结构, 当前的常规增/删/改查/列表, 不受理这种特殊结构
+
         $type = (int) $request->input('type');
 
         $rules = [
