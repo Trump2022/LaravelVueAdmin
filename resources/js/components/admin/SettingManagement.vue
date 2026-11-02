@@ -80,6 +80,16 @@ function setJsonEditor(jsonValue) {
     );
 }
 
+function setDefaultJsonEditor() {
+    jsonFields.value = [
+        { title: '列 1', key: 'field_1' },
+        { title: '列 2', key: 'field_2' },
+        { title: '列 3', key: 'field_3' },
+        { title: '列 4', key: 'field_4' },
+    ];
+    jsonRows.value = [jsonFields.value.map(() => '')];
+}
+
 function addJsonField() {
     let number = jsonFields.value.length + 1;
     let key = `field_${number}`;
@@ -126,9 +136,12 @@ async function loadSettings(page = currentPage.value) {
         keyword: keyword.value.trim(),
     });
 
-    if (typeFilter.value !== '') {
-        params.set('type', String(typeFilter.value));
-    }
+    const selectedType = Number(typeFilter.value);
+    const type = Number.isInteger(selectedType) && selectedType >= 0 && selectedType <= 5
+        ? selectedType
+        : 0;
+
+    params.set('type', String(type));
 
     try {
         const response = await apiRequest(`/api/admin/settings?${params}`);
@@ -159,13 +172,7 @@ function changePageSize(size) {
 function startCreating() {
     editingId.value = null;
     form.value = emptyForm();
-    jsonFields.value = [
-        { title: '列 1', key: 'field_1' },
-        { title: '列 2', key: 'field_2' },
-        { title: '列 3', key: 'field_3' },
-        { title: '列 4', key: 'field_4' },
-    ];
-    jsonRows.value = [['', '']];
+    setDefaultJsonEditor();
     errorMessage.value = '';
     showForm.value = true;
 }
@@ -186,11 +193,16 @@ async function startEditing(setting) {
             setting_value: data.setting_value ?? '',
         };
 
+        setJsonEditor(data.json_value);
+
         if (Number(data.type) === 5) {
-            setJsonEditor(data.json_value);
+            if (jsonFields.value.length === 0) {
+                setDefaultJsonEditor();
+            } else if (jsonRows.value.length === 0) {
+                jsonRows.value = [jsonFields.value.map(() => '')];
+            }
         }
 
-        setJsonEditor(data.json_value);
         showForm.value = true;
     } catch (error) {
         errorMessage.value = error.message;
@@ -359,37 +371,32 @@ onUnmounted(() => {
                 搜索
             </el-button>
         </div>
-
         <form
             v-if="showForm"
-            class="mb-6 grid gap-4 rounded-lg border border-slate-200 p-4 sm:grid-cols-2"
+            class="mb-6 grid gap-4 rounded-lg border border-slate-200 p-4 sm:grid-cols-2 lg:grid-cols-4"
             @submit.prevent="saveSetting"
         >
             <label>
                 <span class="text-sm font-medium">设置键</span>
-                <input
+                <el-input
                     v-model="form.setting_key"
-                    type="text"
                     maxlength="100"
                     required
-                    class="mt-1 w-full rounded border border-slate-300 px-3 py-2"
-                >
+                />
             </label>
 
             <label>
                 <span class="text-sm font-medium">名称</span>
-                <input
+                <el-input
                     v-model="form.name"
-                    type="text"
                     maxlength="150"
                     required
-                    class="mt-1 w-full rounded border border-slate-300 px-3 py-2"
-                >
+                />
             </label>
 
             <label>
                 <span class="text-sm font-medium">类型</span>
-                <el-select v-model="form.type" class="mt-1 w-full">
+                <el-select v-model="form.type" class="w-full" >
                     <el-option
                         v-for="option in typeOptions"
                         :key="option.value"
@@ -401,13 +408,13 @@ onUnmounted(() => {
 
             <label v-if="form.type === 3">
                 <span class="text-sm font-medium">值</span>
-                <el-select v-model="form.setting_value" class="mt-1 w-full">
+                <el-select v-model="form.setting_value" class="w-full" >
                     <el-option label="是" value="1" />
                     <el-option label="否" value="0" />
                 </el-select>
             </label>
 
-            <div v-else-if="form.type === 5" class="sm:col-span-2">
+            <div v-else-if="form.type === 5" class="sm:col-span-2 lg:col-span-4">
                 <div class="mb-3 flex gap-2">
                     <button
                         type="button"
@@ -488,35 +495,24 @@ onUnmounted(() => {
                 </div>
             </div>
 
-            <label v-else class="sm:col-span-2">
+            <label v-else>
                 <span class="text-sm font-medium">值</span>
-                <input
+                <el-input
                     v-model="form.setting_value"
                     :type="form.type === 2 || form.type === 4 ? 'number' : 'text'"
                     :step="form.type === 4 ? 'any' : form.type === 2 ? '1' : undefined"
                     :maxlength="form.type === 1 ? 4096 : undefined"
                     required
-                    class="mt-1 w-full rounded border border-slate-300 px-3 py-2"
-                >
+                />
             </label>
 
-            <div class="flex gap-2 sm:col-span-2">
-                <button
-                    type="submit"
-                    :disabled="saving"
-                    class="rounded bg-blue-600 px-4 py-2 text-white disabled:opacity-50"
-                >
+            <div class="flex gap-2 sm:col-span-2 lg:col-span-4">
+                <el-button type="primary" native-type="submit" :loading="saving">
                     {{ saving ? '保存中…' : '保存' }}
-                </button>
-
-                <button
-                    type="button"
-                    :disabled="saving"
-                    class="rounded border border-slate-300 px-4 py-2 text-slate-700 disabled:opacity-50"
-                    @click="cancelForm"
-                >
+                </el-button>
+                <el-button native-type="button" :disabled="saving" @click="cancelForm">
                     取消
-                </button>
+                </el-button>
             </div>
         </form>
 

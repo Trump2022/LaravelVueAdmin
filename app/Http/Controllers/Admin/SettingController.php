@@ -7,6 +7,7 @@ use App\Models\Setting;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Illuminate\Validation\Rule;
+use Illuminate\Validation\ValidationException;
 
 class SettingController extends Controller
 {
@@ -20,7 +21,7 @@ class SettingController extends Controller
     {
         $request->validate([
             'keyword' => ['nullable', 'string', 'max:150'],
-            'type' => ['nullable', 'integer', 'between:1,5'],
+            'type' => ['nullable', 'integer', 'between:0,5'],
             'per_page' => ['nullable', 'integer', 'between:1,100'],
         ]);
 
@@ -36,8 +37,10 @@ class SettingController extends Controller
             });
         }
 
-        if ($request->filled('type')) {
-            $query->where('type', $request->input('type'));
+        $type = $request->integer('type', 0);
+
+        if ($type > 0) {
+            $query->where('type', $type);
         }
 
         $data = $query->orderByDesc('id')
@@ -146,6 +149,42 @@ class SettingController extends Controller
         ];
 
         if ($type === 5) {
+            $jsonValue = $request->input('json_value');
+
+            if (is_array($jsonValue)) {
+                if (is_array($jsonValue['fields'] ?? null)) {
+                    $jsonValue['fields'] = array_map(
+                        static function ($field) {
+                            if (!is_array($field)) {
+                                return $field;
+                            }
+
+                            return [
+                                'key' => $field['key'] ?? null,
+                                'title' => $field['title'] ?? null,
+                            ];
+                        },
+                        $jsonValue['fields'],
+                    );
+                }
+
+                if (is_array($jsonValue['data'] ?? null)) {
+                    foreach ($jsonValue['data'] as $rowIndex => $row) {
+                        if (!is_array($row)) {
+                            continue;
+                        }
+
+                        foreach ($row as $key => $value) {
+                            if ($value === null) {
+                                $jsonValue['data'][$rowIndex][$key] = '';
+                            }
+                        }
+                    }
+                }
+
+                $request->merge(['json_value' => $jsonValue]);
+            }
+
             $rules['json_value'] = ['required', 'array'];
             $rules['json_value.fields'] = ['required', 'array', 'min:1'];
             $rules['json_value.fields.*'] = ['required', 'array:title,key'];
@@ -175,6 +214,30 @@ class SettingController extends Controller
         $data = $request->validate($rules);
 
         if ($type === 5) {
+            $fieldKeys = array_column($data['json_value']['fields'], 'key');
+
+            foreach ($data['json_value']['data'] as $rowIndex => $row) {
+                $rowKeys = array_map('strval', array_keys($row));
+
+                if (
+                    count($rowKeys) !== count($fieldKeys)
+                    || array_diff($fieldKeys, $rowKeys) !== []
+                    || array_diff($rowKeys, $fieldKeys) !== []
+                ) {
+                    throw ValidationException::withMessages([
+                        "json_value.data.$rowIndex" => '每条数据必须且只能包含 fields 中定义的字段。',
+                    ]);
+                }
+
+                $orderedRow = [];
+
+                foreach ($fieldKeys as $fieldKey) {
+                    $orderedRow[$fieldKey] = $row[$fieldKey];
+                }
+
+                $data['json_value']['data'][$rowIndex] = $orderedRow;
+            }
+
             $data['setting_value'] = null;
         } else {
             if ($type === 3) {

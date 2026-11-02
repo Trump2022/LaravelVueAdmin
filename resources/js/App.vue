@@ -7,6 +7,7 @@ import AdminLayout from './components/admin/AdminLayout.vue';
 import OwnPasswordForm from './components/admin/OwnPasswordForm.vue';
 
 const adminManagementRef = ref(null);
+const authReady = ref(false);
 
 async function editOwnProfile() {
     showOwnPasswordForm.value = false;
@@ -163,12 +164,24 @@ onMounted(async () => {
         return;
     }
 
+    // try {
+    //     admin.value = await apiRequest('/api/admin/me');
+    // } catch (error) {
+    //     if (error.status !== 401) {
+    //         errorMessage.value = error.message;
+    //     }
+    // }
+
     try {
-        admin.value = await apiRequest('/api/admin/me');
+        if (localStorage.getItem(tokenKey)) {
+            admin.value = await apiRequest('/api/admin/me');
+        }
     } catch (error) {
         if (error.status !== 401) {
             errorMessage.value = error.message;
         }
+    } finally {
+        authReady.value = true;
     }
 });
 
@@ -257,7 +270,12 @@ async function logout() {
     <RouterView v-if="!route.meta.withAdmin" />
     <main v-else class="min-h-screen bg-slate-100 p-4 sm:p-6 text-slate-900">
         <section class="rounded-xl bg-white p-8 shadow">
-            <template v-if="admin">
+
+            <template v-if="!authReady">
+                <p>正在恢复登录状态…</p>
+            </template>
+
+            <template v-else-if="admin">
                 <AdminLayout
                     :admin="admin"
                     :active-path="route.path"
