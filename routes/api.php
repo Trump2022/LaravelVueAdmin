@@ -11,6 +11,9 @@ use Illuminate\Support\Facades\Route;
 use App\Http\Controllers\Admin\SettingController;
 use App\Http\Controllers\Web\SettingController as WebSettingController;
 use App\Http\Controllers\Admin\UserManagementController;
+use App\Http\Controllers\Api\UserAuthController;
+
+
 
 Route::get('/user', function (Request $request) {
     return $request->user();
@@ -20,6 +23,27 @@ Route::prefix('web')->name('web.')->group(function () {
     Route::get('site-settings', [WebSettingController::class, 'getWebSiteSettings'])
         ->name('settings');
 });
+
+
+
+Route::prefix('auth')->name('auth.')->group(function () {
+    Route::post('register', [UserAuthController::class, 'register'])
+        ->middleware('throttle:5,1')
+        ->name('register');
+
+    Route::post('login', [UserAuthController::class, 'login'])
+        ->middleware('throttle:5,1')
+        ->name('login');
+
+    Route::middleware('auth:user-api')->group(function () {
+        Route::post('logout', [UserAuthController::class, 'logout'])->name('logout');
+        Route::get('me', [UserAuthController::class, 'me'])->name('me');
+        Route::patch('me', [UserAuthController::class, 'updateProfile'])->name('me.update');
+        Route::patch('me/password', [UserAuthController::class, 'updatePassword'])->name('me.password');
+    });
+});
+
+
 
 Route::prefix('admin')->name('admin.')->group(function () {
     Route::post('login', [AuthController::class, 'login'])->middleware('throttle:5,1')->name('login'); // 管理员登录,限制每分钟最多5次请求

@@ -5,6 +5,8 @@ import RoleManagement from './components/admin/RoleManagement.vue';
 import PermissionManagement from './components/admin/PermissionManagement.vue';
 import SettingManagement from './components/admin/SettingManagement.vue';
 import UserManagement from './components/admin/UserManagement.vue';
+
+import UserAccount from './components/web/UserAccount.vue';
 import Home from './Home.vue';
 
 export const pageRouteNames = {
@@ -27,6 +29,14 @@ export default createRouter({
             path: '/web',
             name: 'web-home',
             component: Home,
+        },
+        {
+            path: '/web/account',
+            name: 'web-account',
+            component: UserAccount,
+            meta: {
+                title: '账户',
+            },
         },
         {
             path: '/admin',

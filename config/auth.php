@@ -39,14 +39,23 @@ return [
     */
 
     'guards' => [
+
+        //默认配置, Web认证使用Session驱动
         'web' => [
             'driver' => 'session',
             'provider' => 'users',
         ],
+
+        //后台API认证使用JWT驱动
         'admin' => [
-            // 'driver' => 'session',
             'driver' => 'jwt',
             'provider' => 'admins',
+        ],
+
+        //前台API认证使用JWT驱动
+        'user-api' => [
+            'driver' => 'jwt',
+            'provider' => 'users',
         ],
     ],
 
