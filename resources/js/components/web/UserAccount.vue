@@ -7,10 +7,27 @@ import {
     userApiRequest,
 } from '../../userApi';
 import WebBottomNav from './WebBottomNav.vue';
+import { useRoute, useRouter } from 'vue-router';
 
 const authReady = ref(false);
+const route = useRoute();
+const router = useRouter();
 const user = ref(null);
 const mode = ref('login');
+
+const resetToken = ref(
+    typeof route.query.reset_token === 'string' ? route.query.reset_token : '',
+);
+const resetEmail = ref(
+    typeof route.query.email === 'string' ? route.query.email : '',
+);
+const isResettingPassword = ref(Boolean(resetToken.value && resetEmail.value));
+const forgotEmail = ref('');
+const resetPasswordForm = reactive({
+    password: '',
+    password_confirmation: '',
+});
+
 const loading = ref(false);
 const errorMessage = ref('');
 const successMessage = ref('');
@@ -56,6 +73,16 @@ async function restoreSession() {
         }
     } finally {
         authReady.value = true;
+
+        if (route.query.verified === '1') {
+            successMessage.value = user.value
+                ? '邮箱验证成功。'
+                : '邮箱验证成功，请登录。';
+
+            const query = { ...route.query };
+            delete query.verified;
+            await router.replace({ query });
+        }
     }
 }
 
@@ -73,6 +100,76 @@ async function login() {
         saveUserToken(response.access_token);
         applyUser(response.user);
         loginForm.password = '';
+    } catch (error) {
+        errorMessage.value = error.message;
+    } finally {
+        loading.value = false;
+    }
+}
+
+async function resendVerification() {
+    loading.value = true;
+    errorMessage.value = '';
+    successMessage.value = '';
+
+    try {
+        const response = await userApiRequest(
+            '/api/auth/email/verification-notification',
+            { method: 'POST' },
+        );
+        successMessage.value = response.message;
+    } catch (error) {
+        errorMessage.value = error.message;
+    } finally {
+        loading.value = false;
+    }
+}
+
+async function sendPasswordResetLink() {
+    loading.value = true;
+    errorMessage.value = '';
+    successMessage.value = '';
+
+    try {
+        const response = await userApiRequest('/api/auth/forgot-password', {
+            method: 'POST',
+            body: JSON.stringify({ email: forgotEmail.value }),
+        });
+        successMessage.value = response.message;
+    } catch (error) {
+        errorMessage.value = error.message;
+    } finally {
+        loading.value = false;
+    }
+}
+
+async function submitPasswordReset() {
+    loading.value = true;
+    errorMessage.value = '';
+    successMessage.value = '';
+
+    try {
+        const response = await userApiRequest('/api/auth/reset-password', {
+            method: 'POST',
+            body: JSON.stringify({
+                email: resetEmail.value,
+                token: resetToken.value,
+                password: resetPasswordForm.password,
+                password_confirmation: resetPasswordForm.password_confirmation,
+            }),
+        });
+
+        clearUserToken();
+        user.value = null;
+        isResettingPassword.value = false;
+        resetToken.value = '';
+        resetEmail.value = '';
+        resetPasswordForm.password = '';
+        resetPasswordForm.password_confirmation = '';
+        mode.value = 'login';
+        successMessage.value = response.message;
+
+        await router.replace({ path: route.path, query: {} });
     } catch (error) {
         errorMessage.value = error.message;
     } finally {
@@ -206,11 +303,33 @@ onUnmounted(() => {
                     正在恢复登录状态…
                 </p>
 
-                <template v-else-if="user">
+                <template v-else-if="user && !isResettingPassword">
                     <div class="mt-6 flex flex-wrap items-start justify-between gap-4">
                         <div>
                             <h1 class="text-2xl font-semibold">个人信息</h1>
                             <p class="mt-2 text-sm text-slate-600">{{ user.email }}</p>
+
+                            <div
+                                v-if="!user.email_verified"
+                                class="mt-4 rounded border border-amber-200 bg-amber-50 p-4"
+                            >
+                                <p class="text-sm font-medium text-amber-900">邮箱尚未验证</p>
+                                <p class="mt-1 text-sm text-amber-800">
+                                    验证邮件已发送到 {{ user.email }}。请检查邮箱，也可以重新发送。
+                                </p>
+                                <button
+                                    type="button"
+                                    :disabled="loading"
+                                    class="mt-3 rounded border border-amber-700 px-3 py-2 text-sm font-medium text-amber-900 hover:bg-amber-100 disabled:opacity-50"
+                                    @click="resendVerification"
+                                >
+                                    {{ loading ? '处理中…' : '重新发送验证邮件' }}
+                                </button>
+                            </div>
+
+                            <p v-else class="mt-2 text-sm text-emerald-800">
+                                邮箱已验证
+                            </p>
                         </div>
 
                         <button
@@ -294,16 +413,16 @@ onUnmounted(() => {
 
                 <template v-else>
                     <h1 class="mt-6 text-2xl font-semibold">
-                        {{ mode === 'login' ? '登录' : '注册' }}
+                        {{ isResettingPassword ? '设置新密码' : mode === 'forgot' ? '重置密码' : mode === 'login' ? '登录' : '注册' }}
                     </h1>
 
-                    <div class="mt-5 flex border-b border-slate-200">
+                    <div v-if="!isResettingPassword" class="mt-5 flex border-b border-slate-200">
                         <button
                             type="button"
                             class="border-b-2 px-4 py-2 text-sm"
                             :class="mode === 'login'
-                                ? 'border-emerald-800 font-medium text-emerald-900'
-                                : 'border-transparent text-slate-600'"
+                ? 'border-emerald-800 font-medium text-emerald-900'
+                : 'border-transparent text-slate-600'"
                             @click="mode = 'login'; errorMessage = ''; successMessage = ''"
                         >
                             登录
@@ -312,15 +431,104 @@ onUnmounted(() => {
                             type="button"
                             class="border-b-2 px-4 py-2 text-sm"
                             :class="mode === 'register'
-                                ? 'border-emerald-800 font-medium text-emerald-900'
-                                : 'border-transparent text-slate-600'"
+                ? 'border-emerald-800 font-medium text-emerald-900'
+                : 'border-transparent text-slate-600'"
                             @click="mode = 'register'; errorMessage = ''; successMessage = ''"
                         >
                             注册
                         </button>
                     </div>
 
-                    <form v-if="mode === 'login'" class="mt-5 space-y-4" @submit.prevent="login">
+                    <form
+                        v-if="isResettingPassword"
+                        class="mt-5 space-y-4"
+                        @submit.prevent="submitPasswordReset"
+                    >
+                        <label class="block">
+                            <span class="text-sm font-medium">邮箱</span>
+                            <input
+                                :value="resetEmail"
+                                type="email"
+                                disabled
+                                class="mt-1 w-full rounded border border-slate-300 bg-slate-50 px-3 py-2"
+                            >
+                        </label>
+
+                        <label class="block">
+                            <span class="text-sm font-medium">新密码（至少 8 位）</span>
+                            <input
+                                v-model="resetPasswordForm.password"
+                                type="password"
+                                autocomplete="new-password"
+                                minlength="8"
+                                required
+                                class="mt-1 w-full rounded border border-slate-300 px-3 py-2"
+                            >
+                        </label>
+
+                        <label class="block">
+                            <span class="text-sm font-medium">确认新密码</span>
+                            <input
+                                v-model="resetPasswordForm.password_confirmation"
+                                type="password"
+                                autocomplete="new-password"
+                                minlength="8"
+                                required
+                                class="mt-1 w-full rounded border border-slate-300 px-3 py-2"
+                            >
+                        </label>
+
+                        <button
+                            type="submit"
+                            :disabled="loading"
+                            class="w-full rounded bg-emerald-800 px-4 py-2 text-sm font-medium text-white hover:bg-emerald-900 disabled:opacity-50"
+                        >
+                            {{ loading ? '处理中…' : '重置密码' }}
+                        </button>
+                    </form>
+
+                    <form
+                        v-else-if="mode === 'forgot'"
+                        class="mt-5 space-y-4"
+                        @submit.prevent="sendPasswordResetLink"
+                    >
+                        <p class="text-sm leading-6 text-slate-600">
+                            输入注册邮箱。如果账户存在，我们会发送密码重置链接。
+                        </p>
+
+                        <label class="block">
+                            <span class="text-sm font-medium">邮箱</span>
+                            <input
+                                v-model="forgotEmail"
+                                type="email"
+                                autocomplete="email"
+                                required
+                                class="mt-1 w-full rounded border border-slate-300 px-3 py-2"
+                            >
+                        </label>
+
+                        <button
+                            type="submit"
+                            :disabled="loading"
+                            class="w-full rounded bg-emerald-800 px-4 py-2 text-sm font-medium text-white hover:bg-emerald-900 disabled:opacity-50"
+                        >
+                            {{ loading ? '处理中…' : '发送重置邮件' }}
+                        </button>
+
+                        <button
+                            type="button"
+                            class="text-sm font-medium text-emerald-900 hover:underline"
+                            @click="mode = 'login'; errorMessage = ''; successMessage = ''"
+                        >
+                            返回登录
+                        </button>
+                    </form>
+
+                    <form
+                        v-else-if="mode === 'login'"
+                        class="mt-5 space-y-4"
+                        @submit.prevent="login"
+                    >
                         <label class="block">
                             <span class="text-sm font-medium">邮箱</span>
                             <input
@@ -350,9 +558,21 @@ onUnmounted(() => {
                         >
                             {{ loading ? '处理中…' : '登录' }}
                         </button>
+
+                        <button
+                            type="button"
+                            class="text-sm font-medium text-emerald-900 hover:underline"
+                            @click="forgotEmail = loginForm.email; mode = 'forgot'; errorMessage = ''; successMessage = ''"
+                        >
+                            忘记密码？
+                        </button>
                     </form>
 
-                    <form v-else class="mt-5 space-y-4" @submit.prevent="register">
+                    <form
+                        v-else
+                        class="mt-5 space-y-4"
+                        @submit.prevent="register"
+                    >
                         <label class="block">
                             <span class="text-sm font-medium">姓名</span>
                             <input

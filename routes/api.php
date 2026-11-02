@@ -35,11 +35,21 @@ Route::prefix('auth')->name('auth.')->group(function () {
         ->middleware('throttle:5,1')
         ->name('login');
 
+    Route::post('forgot-password', [UserAuthController::class, 'sendPasswordResetLink'])
+        ->middleware('throttle:5,1')
+        ->name('password.email');
+
+    Route::post('reset-password', [UserAuthController::class, 'resetPassword'])
+        ->middleware('throttle:10,1')
+        ->name('password.update');
+
     Route::middleware('auth:user-api')->group(function () {
         Route::post('logout', [UserAuthController::class, 'logout'])->name('logout');
         Route::get('me', [UserAuthController::class, 'me'])->name('me');
         Route::patch('me', [UserAuthController::class, 'updateProfile'])->name('me.update');
         Route::patch('me/password', [UserAuthController::class, 'updatePassword'])->name('me.password');
+
+        Route::post('email/verification-notification', [UserAuthController::class, 'resendVerification'])->middleware('throttle:6,1')->name('verification.send');
     });
 });
 

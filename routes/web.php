@@ -1,10 +1,15 @@
 <?php
 
 use Illuminate\Support\Facades\Route;
+use App\Http\Controllers\Api\UserAuthController;
 
 // Route::get('/', function () {
 //     return view('welcome');
 // });
+
+Route::get('/email/verify/{id}/{hash}', [UserAuthController::class, 'verifyEmail'])
+    ->middleware(['signed', 'throttle:10,1'])
+    ->name('verification.verify');
 
 if (app()->environment('local')) {
 
@@ -12,9 +17,7 @@ if (app()->environment('local')) {
     Route::view('/web/{path?}', 'vue-learning')->where('path', '.*');
     Route::view('/admin/{path?}', 'vue-learning')->where('path', '.*');
     // Route::view('/{path}', 'vue-learning')->where('path', '.*');//(如果没有其它规则匹配)任意路径，返回 vue-learning 视图
-    // Route::fallback(function () {
-    //     return view('vue-learning');
-    // });
+    // Route::fallback(function () {return view('vue-learning');});
     Route::fallback(fn() => view('vue-learning'));// 处理所有未匹配的路由，返回 vue-learning 视图, 与上面注释掉的闭包写法完全等同
 } else {
     $frontend = fn () => response()->file(base_path('dist/index.html'));

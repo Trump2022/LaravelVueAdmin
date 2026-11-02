@@ -9,6 +9,11 @@ use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Hash;
 use Illuminate\Validation\ValidationException;
+use Illuminate\Auth\Events\Verified;
+use Illuminate\Http\RedirectResponse;
+use Illuminate\Auth\Events\PasswordReset;
+use Illuminate\Support\Facades\Password;
+
 
 class UserAuthController extends Controller
 {
@@ -27,6 +32,7 @@ class UserAuthController extends Controller
         $user = User::create($data);
         $guard = Auth::guard('user-api');
         $token = $guard->login($user);
+        $user->sendEmailVerificationNotification();
 
         return $this->tokenResponse($user, $token, '注册成功', 201);
     }
@@ -127,12 +133,8 @@ class UserAuthController extends Controller
      * @param int $status
      * @return JsonResponse
      */
-    private function tokenResponse(
-        User $user,
-        string $token,
-        string $message,
-        int $status = 200,
-    ): JsonResponse {
+    private function tokenResponse(User $user, string $token, string $message, int $status = 200): JsonResponse
+    {
         return response()->json([
             'message' => $message,
             'access_token' => $token,
@@ -152,6 +154,96 @@ class UserAuthController extends Controller
             'id' => $user->id,
             'name' => $user->name,
             'email' => $user->email,
+            'email_verified' => $user->hasVerifiedEmail(),
         ];
+    }
+
+    /**
+     * @param Request $request
+     * @return JsonResponse
+     */
+    public function resendVerification(Request $request): JsonResponse
+    {
+        $user = $request->user('user-api');
+
+        if ($user->hasVerifiedEmail()) {
+            return response()->json(['message' => '邮箱已经验证。']);
+        }
+
+        $user->sendEmailVerificationNotification();
+
+        return response()->json(['message' => '验证邮件已发送。'], 202);
+    }
+
+    /**
+     * @param Request $request
+     * @return JsonResponse
+     */
+    public function sendPasswordResetLink(Request $request): JsonResponse
+    {
+        $data = $request->validate([
+            'email' => ['required', 'email'],
+        ]);
+
+        Password::broker('users')->sendResetLink($data);
+
+        // 对存在和不存在的邮箱返回相同内容，避免泄露账号是否注册。
+        return response()->json([
+            'message' => '如果该邮箱已注册，重置邮件将发送。',
+        ], 202);
+    }
+
+    /**
+     * @param Request $request
+     * @return JsonResponse
+     */
+    public function resetPassword(Request $request): JsonResponse
+    {
+        $data = $request->validate([
+            'email' => ['required', 'email'],
+            'token' => ['required', 'string'],
+            'password' => ['required', 'string', 'min:8', 'confirmed'],
+        ]);
+
+        $status = Password::broker('users')->reset(
+            $data,
+            function (User $user, string $password): void {
+                $user->forceFill([
+                    'password' => $password,
+                ])->save();
+
+                event(new PasswordReset($user));
+            },
+        );
+
+        if ($status !== Password::PASSWORD_RESET) {
+            throw ValidationException::withMessages([
+                'email' => [__($status)],
+            ]);
+        }
+
+        return response()->json([
+            'message' => '密码已重置，请使用新密码登录。',
+        ]);
+    }
+
+    /**
+     * @param string $id
+     * @param string $hash
+     * @return RedirectResponse
+     */
+    public function verifyEmail(string $id, string $hash): RedirectResponse
+    {
+        $user = User::findOrFail($id);
+
+        if (! hash_equals(sha1($user->getEmailForVerification()), $hash)) {
+            abort(403);
+        }
+
+        if ($user->markEmailAsVerified()) {
+            event(new Verified($user));
+        }
+
+        return redirect('/web/account?verified=1');
     }
 }

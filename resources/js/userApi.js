@@ -56,6 +56,8 @@ export async function userApiRequest(path, options = {}) {
     const isPublicAuthRequest = [
         '/api/auth/login',
         '/api/auth/register',
+        '/api/auth/forgot-password',
+        '/api/auth/reset-password',
     ].includes(pathname);
 
     if (!['GET', 'HEAD', 'OPTIONS'].includes(method)) {

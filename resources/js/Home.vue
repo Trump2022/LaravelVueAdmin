@@ -2,6 +2,7 @@
 import { onMounted, ref } from 'vue';
 import WebBottomNav from './components/web/WebBottomNav.vue';
 import { getUserToken, userApiRequest } from './userApi';
+import defaultAvatar from '../images/default-avatar.jpg';
 
 const user = ref(null);
 const authStatus = ref('loading');
@@ -47,7 +48,7 @@ onMounted(async () => {
                         class="block rounded-full focus:outline-none focus:ring-2 focus:ring-emerald-700 focus:ring-offset-2"
                     >
                         <img
-                            src="https://i.pravatar.cc/96?img=12"
+                            :src="defaultAvatar"
                             alt="用户头像"
                             class="size-10 rounded-full object-cover"
                         >
