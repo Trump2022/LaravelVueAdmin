@@ -1,6 +1,7 @@
 <script setup>
 import { onMounted, ref } from 'vue';
 import { apiRequest } from '../../api';
+import { CircleCheckFilled } from '@element-plus/icons-vue';
 
 const users = ref([]);
 const loading = ref(false);
@@ -299,7 +300,16 @@ onMounted(() => {
 
                     <td class="px-3 py-3">{{ item.id }}</td>
                     <td class="px-3 py-3">{{ item.name }}</td>
-                    <td class="px-3 py-3">{{ item.email }}</td>
+                    <td class="px-3 py-3">
+                        <span class="inline-flex items-center gap-1.5">
+                            {{ item.email }}
+                            <el-tooltip v-if="item.email_verified_at" content="已验证" placement="top">
+                                <el-icon :size="22" color="#16a34a" aria-label="已验证">
+                                    <CircleCheckFilled />
+                                </el-icon>
+                            </el-tooltip>
+                        </span>
+                    </td>
                     <td class="px-3 py-3">{{ item.created_at }}</td>
 
                     <td class="px-3 py-3">
