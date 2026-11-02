@@ -60,7 +60,117 @@ php artisan key:generate
 php artisan jwt:secret
 ```
 
-在 `.env` 中配置数据库（`DB_*`）与 `APP_URL`。
+Updated todo list
+
+我会先对照 `README.md`、`.env.example` 和 Laravel 实际配置键，整理成与项目一致的数据库、Redis、邮件、`APP_DEBUG`、`APP_URL` 说明；当前按你之前的“你来操作”模式，只给出可粘贴内容，不直接改文件。
+
+Searched for regex `\.env|APP_URL|APP_DEBUG|DB_CONNECTION|REDIS|MAIL_MAILER` (`**/laravel_app_dev/README.md`), 5 results
+
+Read
+
+Read , lines 1 to 180
+
+Read , lines 1 to 120
+
+Read , lines 1 to 100
+
+配置键已核对：项目支持 MySQL/MariaDB、Redis `default/cache` 两个数据库，以及 `MAIL_SCHEME` 的 SMTP 设置。接下来我会基于 README 现有的安装段落给出可直接替换/追加的 Markdown，不加入项目没有配置的变量。
+
+Read , lines 35 to 130
+
+把 README 里“在 `.env` 中配置数据库（`DB_*`）与 `APP_URL`。”替换成下面这段。我目前仍按“你来操作”的模式提供可粘贴内容，没有直接修改文件。
+
+```markdown
+`.env` 位于项目根目录，不要提交到 Git；其中包含数据库密码、JWT 密钥和 SMTP 授权码。`.env.example` 只保留示例值。
+
+### 应用环境
+
+本地开发：
+
+```dotenv
+APP_ENV=local
+APP_DEBUG=true
+APP_URL=http://127.0.0.1:8000
+```
+
+生产环境：
+
+```dotenv
+APP_ENV=production
+APP_DEBUG=false
+APP_URL=https://你的正式域名
+```
+
+`APP_URL` 必须是用户实际访问的完整地址，邮件中的邮箱验证和密码重置链接会使用它。生产环境必须设置 `APP_DEBUG=false`。
+
+### 数据库（MySQL / MariaDB）
+
+```dotenv
+DB_CONNECTION=mysql
+DB_HOST=127.0.0.1
+DB_PORT=3306
+DB_DATABASE=你的数据库名
+DB_USERNAME=你的数据库用户
+DB_PASSWORD=你的数据库密码
+DB_CHARSET=utf8mb4
+DB_COLLATION=utf8mb4_unicode_ci
+```
+
+请先在 MySQL / MariaDB 中创建数据库和专用数据库用户，再填写对应信息。若使用 SQLite，则保留 `DB_CONNECTION=sqlite`，并按项目现有 SQLite 配置准备数据库文件。
+
+### Redis（可选）
+
+如果要用 Redis 作为缓存：
+
+```dotenv
+CACHE_STORE=redis
+REDIS_CLIENT=phpredis
+REDIS_HOST=127.0.0.1
+REDIS_PASSWORD=null
+REDIS_PORT=6379
+REDIS_DB=0
+REDIS_CACHE_DB=1
+```
+
+服务器需要运行 Redis，并启用 PHP `phpredis` 扩展。若暂时不用 Redis，保留 `.env.example` 中的 `CACHE_STORE=database` 和 Redis 默认值即可。
+
+当前项目队列默认使用数据库。如需改用 Redis 队列，再设置：
+
+```dotenv
+QUEUE_CONNECTION=redis
+```
+
+使用 Redis 队列时还需要运行 Laravel queue worker。
+
+### 邮件（QQ 邮箱 SMTP 示例）
+
+先在 QQ 邮箱设置中开启 SMTP 服务并获取授权码；不要使用 QQ 登录密码：
+
+```dotenv
+MAIL_MAILER=smtp
+MAIL_SCHEME=smtp
+MAIL_HOST=smtp.qq.com
+MAIL_PORT=587
+MAIL_USERNAME=你的QQ邮箱@qq.com
+MAIL_PASSWORD=QQ邮箱SMTP授权码
+MAIL_FROM_ADDRESS=你的QQ邮箱@qq.com
+MAIL_FROM_NAME="${APP_NAME}"
+```
+
+如需使用 QQ 邮箱 SSL 端口，按邮件服务配置改为 `MAIL_SCHEME=smtps`、`MAIL_PORT=465`。`MAIL_USERNAME` 和 `MAIL_FROM_ADDRESS` 通常填写同一个已授权邮箱地址。
+
+修改 `.env` 后清除配置缓存：
+
+```bash
+php artisan optimize:clear
+```
+
+生产环境修改配置后，在执行 `php artisan optimize` 生成配置缓存前，先确认 `.env` 已正确填写。
+```
+
+注意：你的当前 `.env.example` 用的是 `MAIL_MAILER=log`，上面的 SMTP 配置应填在服务器或本地实际使用的 `.env` 中；真实授权码不要写进 README 或 `.env.example`。注意：你的当前 `.env.example` 用的是 `MAIL_MAILER=log`，上面的 SMTP 配置应填在服务器或本地实际使用的 `.env` 中；真实授权码不要写进 README 或 `.env.example`。
+
+Created 5 todos
 
 ### 3. 初始化数据库
 
