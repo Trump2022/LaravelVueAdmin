@@ -83,6 +83,20 @@ APP_URL=https://你的正式域名
 
 `APP_URL` 必须是用户实际访问的完整地址，邮件中的邮箱验证和密码重置链接会使用它。生产环境必须设置 `APP_DEBUG=false`。
 
+### 前端部署模式
+
+`FRONTEND_OUT_DIR` 同时控制生产环境的前端入口和独立 SPA 的构建输出目录：
+
+```dotenv
+# 留空：Laravel Blade 模式；填写项目内的相对目录：独立 Vue SPA 模式
+FRONTEND_OUT_DIR=
+```
+
+- 留空：生产路由由 Laravel 返回 Blade 页面，使用 `npm run build` 将资源构建到 `public/build/`。
+- 填写相对目录，例如 `dist`：生产路由返回该目录下的 `index.html`，使用 `npm run build:frontend` 构建到该目录。
+
+本地 `APP_ENV=local` 始终使用 Blade 和 Vite 开发入口，不受此选项影响。独立 SPA 模式的目录必须位于项目目录内。
+
 ### 数据库（MySQL / MariaDB）
 
 ```dotenv
@@ -206,16 +220,17 @@ php artisan jwt:secret
 # 3. 安装前端依赖
 npm ci
 
-# 选择一种生产构建方式
 ```
 
-Laravel + Blade 部署：页面仍由 Laravel `public/index.php` 和 Blade 提供，Vite 只构建 Blade 引用的资源到 `public/build/`：
+根据 `.env` 中的 `FRONTEND_OUT_DIR` 选择一种生产构建方式。
+
+Laravel + Blade：保持 `FRONTEND_OUT_DIR` 为空，页面由 Laravel `public/index.php` 和 Blade 提供：
 
 ```bash
 npm run build
 ```
 
-独立 Vue SPA 部署：构建完整 `index.html` 到 `dist/`，由 Nginx 直接提供前端页面；本文下面的 Nginx 示例对应此方式：
+独立 Vue SPA：将 `FRONTEND_OUT_DIR` 设置为目标相对目录，例如 `dist`，构建完整 `index.html`，由 Nginx 直接提供前端页面：
 
 ```bash
 npm run build:frontend
@@ -255,7 +270,7 @@ git restore bootstrap/cache storage
 
 ### Nginx 参考配置（独立 SPA / `npm run build:frontend`）
 
-此配置将 Nginx 根目录指向 `dist/`，静态提供 Vue SPA；API、健康检查及未命中的前端路径转给 Laravel。它不适用于 `npm run build` 的 `public/build/` 资源构建模式。若采用 Laravel + Blade 模式，应将 Nginx 根目录指向 Laravel 的 `public/`，并将页面请求交给 Laravel `public/index.php`，由 Blade 的 `@vite(...)` 加载 `public/build/manifest.json` 中的资源。
+下面以 `FRONTEND_OUT_DIR=dist` 为例。`dist` 不是固定名称：Nginx 的 `root` 必须指向 `.env` 中配置的实际目录。该配置静态提供独立 Vue SPA，并将 API、健康检查及未命中的前端路径转给 Laravel。它不适用于 Laravel + Blade 模式；Blade 模式应将 Nginx 根目录指向 Laravel 的 `public/`，并将页面请求交给 Laravel `public/index.php`，由 Blade 的 `@vite(...)` 加载 `public/build/manifest.json` 中的资源。
 
 ```nginx
 server {
