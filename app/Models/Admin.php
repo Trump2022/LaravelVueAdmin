@@ -4,20 +4,21 @@ namespace App\Models;
 
 use Illuminate\Database\Eloquent\Attributes\Fillable;
 use Illuminate\Database\Eloquent\Attributes\Hidden;
-use Illuminate\Database\Eloquent\Relations\BelongsToMany;
-use Illuminate\Foundation\Auth\User as Authenticatable;
 use Illuminate\Database\Eloquent\Builder;
+use Illuminate\Database\Eloquent\Relations\BelongsToMany;
 use Illuminate\Database\Eloquent\SoftDeletes;
+use Illuminate\Foundation\Auth\User as Authenticatable;
 use Illuminate\Http\Request;
+use Illuminate\Notifications\Notifiable;
 use Illuminate\Validation\Rule;
 use PHPOpenSourceSaver\JWTAuth\Contracts\JWTSubject;
 
 #[Fillable(['name', 'email', 'password'])]
 #[Hidden(['password', 'remember_token'])]
 class Admin extends Authenticatable implements JWTSubject
-// class Admin extends Authenticatable//guards的driver不是JWT是session时,这样继续就行了
+    // class Admin extends Authenticatable//guards的driver不是JWT是session时,这样继续就行了
 {
-    use SoftDeletes;
+    use Notifiable, SoftDeletes;
 
     protected function casts(): array
     {
@@ -98,11 +99,6 @@ class Admin extends Authenticatable implements JWTSubject
             ->exists();
     }
 
-    /**
-     * @param Request $request
-     * @param Admin $admin
-     * @return array
-     */
     public static function getValidate(Request $request, Admin $admin): array
     {
         return $request->validate([
@@ -123,10 +119,7 @@ class Admin extends Authenticatable implements JWTSubject
     /**
      * email是否存在
      *
-     * @param array $validated
-     * @param Admin|null $admin
-     * @param bool $isEdit | 为true是编辑
-     * @return bool
+     * @param  bool  $isEdit  | 为true是编辑
      */
     public static function checkEmailExists(array $validated, ?Admin $admin = null, bool $isEdit = false): bool
     {

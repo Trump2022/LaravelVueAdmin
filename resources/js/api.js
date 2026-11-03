@@ -134,14 +134,18 @@ export async function apiRequest(url, options = {}) {
     // const token = sessionStorage.getItem(tokenKey);//默认为会按选项卡隔离
 
     const pathname = new URL(url, window.location.origin).pathname;
-    const isLoginRequest = pathname === '/api/admin/login';
+    const isPublicAdminAuthRequest = [
+        '/api/admin/login',
+        '/api/admin/forgot-password',
+        '/api/admin/reset-password',
+    ].includes(pathname);
     const isLogoutRequest = pathname === '/api/admin/logout';
     const isRefreshRequest = pathname === '/api/admin/refresh';
 
     //登录请求不会携带上次残留的 token。Web Locks 不可用的浏览器仍没有跨标签并发保护；常见的 HTTPS/localhost 环境可用 Web Locks。
-    let token = isLoginRequest ? null : localStorage.getItem(tokenKey);//
+    let token = isPublicAdminAuthRequest ? null : localStorage.getItem(tokenKey);//
 
-    if (token && !isLoginRequest && !isLogoutRequest && !isRefreshRequest) {
+    if (token && !isPublicAdminAuthRequest && !isLogoutRequest && !isRefreshRequest) {
         token = await getTokenForRequest();
     }
 

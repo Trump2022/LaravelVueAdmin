@@ -1,6 +1,6 @@
 # LaravelVueAdmin
 
-轻量的 Laravel + Vue 3 后台管理系统，内置基于 JWT 的 RBAC 权限模型（管理员 / 角色 / 权限菜单）与站点设置。
+轻量的 Laravel + Vue 3 后台管理系统，内置基于 JWT 的 RBAC 权限模型（管理员 / 角色 / 权限菜单）与站点设置、用户管理。
 
 ## 特性
 
@@ -24,7 +24,8 @@
 
 ```
 app/
-  Console/Commands/CreateDeveloperAdmin.php   创建初始开发者管理员
+    Console/Commands/CreateDeveloperAdmin.php   创建初始开发者管理员
+    Console/Commands/ChangeDeveloperAdminPassword.php 修改开发者管理员密码
   Http/Controllers/Admin/                     后台控制器
   Http/Controllers/Web/                       前台控制器
   Http/Middleware/                            权限校验、管理员状态校验
@@ -60,27 +61,6 @@ php artisan key:generate
 php artisan jwt:secret
 ```
 
-Updated todo list
-
-我会先对照 `README.md`、`.env.example` 和 Laravel 实际配置键，整理成与项目一致的数据库、Redis、邮件、`APP_DEBUG`、`APP_URL` 说明；当前按你之前的“你来操作”模式，只给出可粘贴内容，不直接改文件。
-
-Searched for regex `\.env|APP_URL|APP_DEBUG|DB_CONNECTION|REDIS|MAIL_MAILER` (`**/laravel_app_dev/README.md`), 5 results
-
-Read
-
-Read , lines 1 to 180
-
-Read , lines 1 to 120
-
-Read , lines 1 to 100
-
-配置键已核对：项目支持 MySQL/MariaDB、Redis `default/cache` 两个数据库，以及 `MAIL_SCHEME` 的 SMTP 设置。接下来我会基于 README 现有的安装段落给出可直接替换/追加的 Markdown，不加入项目没有配置的变量。
-
-Read , lines 35 to 130
-
-把 README 里“在 `.env` 中配置数据库（`DB_*`）与 `APP_URL`。”替换成下面这段。我目前仍按“你来操作”的模式提供可粘贴内容，没有直接修改文件。
-
-```markdown
 `.env` 位于项目根目录，不要提交到 Git；其中包含数据库密码、JWT 密钥和 SMTP 授权码。`.env.example` 只保留示例值。
 
 ### 应用环境
@@ -102,6 +82,20 @@ APP_URL=https://你的正式域名
 ```
 
 `APP_URL` 必须是用户实际访问的完整地址，邮件中的邮箱验证和密码重置链接会使用它。生产环境必须设置 `APP_DEBUG=false`。
+
+### 前端部署模式
+
+`FRONTEND_OUT_DIR` 同时控制生产环境的前端入口和独立 SPA 的构建输出目录：
+
+```dotenv
+# 留空：Laravel Blade 模式；填写项目内的相对目录：独立 Vue SPA 模式
+FRONTEND_OUT_DIR=
+```
+
+- 留空：生产路由由 Laravel 返回 Blade 页面，使用 `npm run build` 将资源构建到 `public/build/`。
+- 填写相对目录，例如 `dist`：生产路由返回该目录下的 `index.html`，使用 `npm run build:frontend` 构建到该目录。
+
+本地 `APP_ENV=local` 始终使用 Blade 和 Vite 开发入口，不受此选项影响。独立 SPA 模式的目录必须位于项目目录内。
 
 ### 数据库（MySQL / MariaDB）
 
@@ -132,7 +126,7 @@ REDIS_DB=0
 REDIS_CACHE_DB=1
 ```
 
-服务器需要运行 Redis，并启用 PHP `phpredis` 扩展。若暂时不用 Redis，保留 `.env.example` 中的 `CACHE_STORE=database` 和 Redis 默认值即可。
+服务器需要运行 Redis，并启用 PHP `phpredis` 扩展。`.env.example` 默认使用 Redis 缓存；若本地暂时不运行 Redis，可将 `CACHE_STORE` 改为 `database`。
 
 当前项目队列默认使用数据库。如需改用 Redis 队列，再设置：
 
@@ -165,12 +159,9 @@ MAIL_FROM_NAME="${APP_NAME}"
 php artisan optimize:clear
 ```
 
-生产环境修改配置后，在执行 `php artisan optimize` 生成配置缓存前，先确认 `.env` 已正确填写。
-```
+生产环境修改配置后，在执行 `php artisan optimize` 生成配置缓存前，先确认 `.env` 已正确填写。SMTP 授权码只放在实际使用的 `.env` 中，不要提交到 Git。
 
-注意：你的当前 `.env.example` 用的是 `MAIL_MAILER=log`，上面的 SMTP 配置应填在服务器或本地实际使用的 `.env` 中；真实授权码不要写进 README 或 `.env.example`。注意：你的当前 `.env.example` 用的是 `MAIL_MAILER=log`，上面的 SMTP 配置应填在服务器或本地实际使用的 `.env` 中；真实授权码不要写进 README 或 `.env.example`。
 
-Created 5 todos
 
 ### 3. 初始化数据库
 
@@ -179,6 +170,8 @@ php artisan migrate
 php artisan db:seed
 ```
 
+`AdminSeeder` 只在 `local` 和 `testing` 环境运行，会创建开发测试用的默认管理员。不要在生产环境使用这些默认账号；生产环境执行 `db:seed --force` 时只会初始化权限、角色和站点设置。
+
 ### 4. 创建开发者管理员
 
 ```bash
@@ -186,6 +179,8 @@ php artisan admin:create-developer
 ```
 
 按提示输入姓名、邮箱、密码。
+
+生产环境首次部署时用上述命令创建开发者管理员。之后可用 `php artisan admin:change-developer-password` 交互式修改该账号密码。
 
 ### 5. 启动服务
 
@@ -222,17 +217,38 @@ composer install --no-dev --optimize-autoloader
 #    仅首次生成；重复执行会使已签发的 token 全部失效
 php artisan jwt:secret
 
-# 3. 构建前端（对应 vite.frontend.config.js，输出 dist/）
+# 3. 安装前端依赖
 npm ci
-npm run build:frontend
 
-# 4. 清理缓存并迁移数据库
+```
+
+根据 `.env` 中的 `FRONTEND_OUT_DIR` 选择一种生产构建方式。
+
+Laravel + Blade：保持 `FRONTEND_OUT_DIR` 为空，页面由 Laravel `public/index.php` 和 Blade 提供：
+
+```bash
+npm run build
+```
+
+独立 Vue SPA：将 `FRONTEND_OUT_DIR` 设置为目标相对目录，例如 `dist`，构建完整 `index.html`，由 Nginx 直接提供前端页面：
+
+```bash
+npm run build:frontend
+```
+
+两种方式共用源码，但生产部署选择一种即可。
+
+```bash
+# 4. 清理缓存、迁移并初始化基础数据
 php artisan optimize:clear
 php artisan migrate --force
-php artisan db:seed            # 首次部署执行；重复执行前请确认 Seeder 幂等
+php artisan db:seed --force    # 生产环境不会运行仅限 local/testing 的默认管理员 Seeder
 
-# 5. 首次部署创建开发者管理员
+# 5. 首次部署交互式创建开发者管理员
 php artisan admin:create-developer
+
+# 后续需要修改开发者密码时运行
+php artisan admin:change-developer-password
 
 # 6. 生成缓存
 php artisan optimize
@@ -252,7 +268,9 @@ chmod -R 775 storage bootstrap/cache
 git restore bootstrap/cache storage
 ```
 
-### Nginx 参考配置
+### Nginx 参考配置（独立 SPA / `npm run build:frontend`）
+
+下面以 `FRONTEND_OUT_DIR=dist` 为例。`dist` 不是固定名称：Nginx 的 `root` 必须指向 `.env` 中配置的实际目录。该配置静态提供独立 Vue SPA，并将 API、健康检查及未命中的前端路径转给 Laravel。它不适用于 Laravel + Blade 模式；Blade 模式应将 Nginx 根目录指向 Laravel 的 `public/`，并将页面请求交给 Laravel `public/index.php`，由 Blade 的 `@vite(...)` 加载 `public/build/manifest.json` 中的资源。
 
 ```nginx
 server {
@@ -356,6 +374,8 @@ server {
 | --- | --- | --- | --- |
 | GET | `/web/site-settings` | 前台站点设置 | 否 |
 | POST | `/admin/login` | 管理员登录（限流 5 次/分） | 否 |
+| POST | `/admin/forgot-password` | 发送管理员密码重置邮件 | 否 |
+| POST | `/admin/reset-password` | 使用邮件 token 重置管理员密码 | 否 |
 | POST | `/admin/logout` | 退出登录 | JWT |
 | POST | `/admin/refresh` | 刷新 Token | JWT |
 | GET | `/admin/me` | 当前管理员及权限 | JWT |

@@ -7,6 +7,7 @@ import SettingManagement from './components/admin/SettingManagement.vue';
 import UserManagement from './components/admin/UserManagement.vue';
 
 import UserAccount from './components/web/UserAccount.vue';
+import AdminPasswordReset from './components/admin/AdminPasswordReset.vue';
 import Home from './Home.vue';
 
 export const pageRouteNames = {
@@ -89,6 +90,12 @@ export default createRouter({
             name: pageRouteNames.users,
             component: UserManagement,
             meta: { page: 'users', title: '用户列表', withAdmin: true },
+        },
+        {
+            path: '/admin/reset-password',
+            name: 'admin-reset-password',
+            component: AdminPasswordReset,
+            meta: { title: '重置管理员密码' },
         },
 
         {

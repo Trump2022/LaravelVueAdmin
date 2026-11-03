@@ -4,16 +4,14 @@ use App\Http\Controllers\Admin\AdminController;
 use App\Http\Controllers\Admin\AuthController;
 use App\Http\Controllers\Admin\PermissionController;
 use App\Http\Controllers\Admin\RoleController;
+use App\Http\Controllers\Admin\SettingController;
+use App\Http\Controllers\Admin\UserManagementController;
+use App\Http\Controllers\Api\UserAuthController;
+use App\Http\Controllers\Web\SettingController as WebSettingController;
 use App\Http\Middleware\CheckAdminPermission;
 use App\Http\Middleware\EnsureAdminIsActive;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Route;
-use App\Http\Controllers\Admin\SettingController;
-use App\Http\Controllers\Web\SettingController as WebSettingController;
-use App\Http\Controllers\Admin\UserManagementController;
-use App\Http\Controllers\Api\UserAuthController;
-
-
 
 Route::get('/user', function (Request $request) {
     return $request->user();
@@ -24,43 +22,39 @@ Route::prefix('web')->name('web.')->group(function () {
         ->name('settings');
 });
 
-
-
 Route::prefix('auth')->name('auth.')->group(function () {
-    Route::post('register', [UserAuthController::class, 'register'])
-        ->middleware('throttle:5,1')
-        ->name('register');
+    Route::post('register', [UserAuthController::class, 'register'])->middleware('throttle:5,1')->name('register');
+    Route::post('login', [UserAuthController::class, 'login'])->middleware('throttle:5,1')->name('login');
 
-    Route::post('login', [UserAuthController::class, 'login'])
-        ->middleware('throttle:5,1')
-        ->name('login');
-
+    // 发送密码重置链接
     Route::post('forgot-password', [UserAuthController::class, 'sendPasswordResetLink'])
-        ->middleware('throttle:5,1')
-        ->name('password.email');
+        ->middleware('throttle:5,1')->name('password.email');
 
+    // 重置密码
     Route::post('reset-password', [UserAuthController::class, 'resetPassword'])
-        ->middleware('throttle:10,1')
-        ->name('password.update');
+        ->middleware('throttle:10,1')->name('password.update');
 
     Route::middleware('auth:user-api')->group(function () {
-        Route::post('logout', [UserAuthController::class, 'logout'])->name('logout');
-        Route::get('me', [UserAuthController::class, 'me'])->name('me');
-        Route::patch('me', [UserAuthController::class, 'updateProfile'])->name('me.update');
-        Route::patch('me/password', [UserAuthController::class, 'updatePassword'])->name('me.password');
+        Route::post('logout', [UserAuthController::class, 'logout'])->name('logout'); // 用户退出登录
+        Route::get('me', [UserAuthController::class, 'me'])->name('me'); // 获取当前用户信息
+        Route::patch('me', [UserAuthController::class, 'updateProfile'])->name('me.update'); // 修改当前用户资料
+        Route::patch('me/password', [UserAuthController::class, 'updatePassword'])->name('me.password'); // 修改当前用户密码
 
-        Route::post('email/verification-notification', [UserAuthController::class, 'resendVerification'])->middleware('throttle:6,1')->name('verification.send');
+        Route::post('email/verification-notification', [UserAuthController::class, 'resendVerification'])
+            ->middleware('throttle:6,1')->name('verification.send'); // 发送邮箱验证通知
     });
 });
 
-
-
 Route::prefix('admin')->name('admin.')->group(function () {
+    Route::post('forgot-password', [AuthController::class, 'sendPasswordResetLink'])
+        ->middleware('throttle:5,1')->name('password.email');
+    Route::post('reset-password', [AuthController::class, 'resetPassword'])
+        ->middleware('throttle:10,1')->name('password.update');
     Route::post('login', [AuthController::class, 'login'])->middleware('throttle:5,1')->name('login'); // 管理员登录,限制每分钟最多5次请求
 
     Route::middleware(['auth:admin', EnsureAdminIsActive::class])->group(function () {
         Route::patch('me/password', [AuthController::class, 'updateOwnPassword'])->name('me.password'); // 修改当前管理员密码
-        Route::patch('me/profile', [AuthController::class, 'updateOwnProfile'])->name('me.profile'); //编辑我的资料
+        Route::patch('me/profile', [AuthController::class, 'updateOwnProfile'])->name('me.profile'); // 编辑我的资料
         Route::post('logout', [AuthController::class, 'logout'])->name('logout'); // 管理员退出登录
         Route::post('refresh', [AuthController::class, 'refresh'])->name('refresh'); // 刷新 JWT Token
         Route::get('me', [AuthController::class, 'me'])->name('me'); // 获取当前管理员信息及能力

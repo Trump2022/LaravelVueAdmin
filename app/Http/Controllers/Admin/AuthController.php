@@ -4,22 +4,61 @@ namespace App\Http\Controllers\Admin;
 
 use App\Http\Controllers\Controller;
 use App\Models\Admin;
+use App\Models\Permission;
+use App\Models\Role;
+use Illuminate\Auth\Events\PasswordReset;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Hash;
+use Illuminate\Support\Facades\Password;
 use Illuminate\Validation\ValidationException;
-use App\Models\Permission;
-use App\Models\Role;
 use PHPOpenSourceSaver\JWTAuth\Exceptions\JWTException;
 
 class AuthController extends Controller
 {
+    public function sendPasswordResetLink(Request $request): JsonResponse
+    {
+        $data = $request->validate([
+            'email' => ['required', 'email', 'max:255'],
+        ]);
+
+        Password::broker('admins')->sendResetLink($data);
+
+        return response()->json([
+            'message' => '如果该邮箱对应管理员账号，重置邮件将发送。',
+        ], 202);
+    }
+
+    public function resetPassword(Request $request): JsonResponse
+    {
+        $data = $request->validate([
+            'email' => ['required', 'email', 'max:255'],
+            'token' => ['required', 'string'],
+            'password' => ['required', 'string', 'min:8', 'confirmed'],
+        ]);
+
+        $status = Password::broker('admins')->reset(
+            $data,
+            function (Admin $admin, string $password): void {
+                $admin->forceFill(['password' => $password])->save();
+                event(new PasswordReset($admin));
+            },
+        );
+
+        if ($status !== Password::PASSWORD_RESET) {
+            throw ValidationException::withMessages([
+                'email' => [__($status)],
+            ]);
+        }
+
+        return response()->json([
+            'message' => '密码已重置，请使用新密码登录。',
+        ]);
+    }
+
     /**
      * 登录 (适用于guards的driver不是JWT是session)
-     *
-     * @param Request $request
-     * @return JsonResponse
      */
     public function loginAsSession(Request $request): JsonResponse
     {
@@ -53,8 +92,6 @@ class AuthController extends Controller
 
     /**
      * 刷新 JWT Token
-     *
-     * @return JsonResponse
      */
     public function refresh(): JsonResponse
     {
@@ -75,10 +112,6 @@ class AuthController extends Controller
         ]);
     }
 
-    /**
-     * @param Request $request
-     * @return JsonResponse
-     */
     public function login(Request $request): JsonResponse
     {
         $credentials = $request->validate([
@@ -96,7 +129,7 @@ class AuthController extends Controller
 
         $admin = Auth::guard('admin')->user();
 
-        if (!$admin->status) {
+        if (! $admin->status) {
             Auth::guard('admin')->logout();
 
             throw ValidationException::withMessages([
@@ -116,9 +149,6 @@ class AuthController extends Controller
 
     /**
      * 登出 (适用于guards的driver不是JWT是session)
-     *
-     * @param Request $request
-     * @return JsonResponse
      */
     public function logoutAsSession(Request $request): JsonResponse
     {
@@ -130,19 +160,15 @@ class AuthController extends Controller
         ]);
     }
 
-
     public function logout(): JsonResponse
     {
         Auth::guard('admin')->logout();
+
         return response()->json([
             'message' => '已退出登录。',
         ]);
     }
 
-    /**
-     * @param Request $request
-     * @return JsonResponse
-     */
     public function me(Request $request): JsonResponse
     {
         $admin = $request->user('admin');
@@ -150,10 +176,6 @@ class AuthController extends Controller
         return response()->json($this->adminData($admin));
     }
 
-    /**
-     * @param Request $request
-     * @return JsonResponse
-     */
     public function updateOwnProfile(Request $request): JsonResponse
     {
         $actor = $request->user('admin');
@@ -174,10 +196,6 @@ class AuthController extends Controller
         ]);
     }
 
-    /**
-     * @param Request $request
-     * @return JsonResponse
-     */
     public function updateOwnPassword(Request $request): JsonResponse
     {
         $validated = $request->validate([
@@ -246,8 +264,7 @@ class AuthController extends Controller
         $isDeveloper = in_array(Role::DEVELOPER_CODE, $roleCodes, true);
         $isSuperAdmin = in_array(Role::SUPER_ADMIN_CODE, $roleCodes, true);
 
-        $hasApiPermission = function (string $permissionCode) use (  $isDeveloper, $isSuperAdmin,  $roleIds,  $permissions  ): bool
-        {
+        $hasApiPermission = function (string $permissionCode) use ($isDeveloper, $isSuperAdmin, $roleIds, $permissions): bool {
             if ($isDeveloper) {
                 return true;
             }
@@ -281,7 +298,7 @@ class AuthController extends Controller
             'email' => $admin->email,
             'role_codes' => $roleCodes,
             'can_view_admin_role_options' => $hasApiPermission('admin.admins.role-options:get'),
-            'can_manage_role_permissions' => $hasApiPermission('admin.roles.permissions.index:get') && $hasApiPermission('admin.roles.permissions.assign:put')  && $hasApiPermission('admin.roles.permissions.revoke:delete'),
+            'can_manage_role_permissions' => $hasApiPermission('admin.roles.permissions.index:get') && $hasApiPermission('admin.roles.permissions.assign:put') && $hasApiPermission('admin.roles.permissions.revoke:delete'),
             'can_update_admins' => $hasApiPermission('admin.admins.update:patch'),
             'can_view_admins' => $hasApiPermission('admin.admins.index:get'),
             'can_reset_admin_passwords' => $hasApiPermission('admin.admins.password:patch'),

@@ -1,7 +1,7 @@
 <?php
 
-use App\Models\User;
 use App\Models\Admin;
+use App\Models\User;
 
 return [
 
@@ -40,19 +40,19 @@ return [
 
     'guards' => [
 
-        //默认配置, Web认证使用Session驱动
+        // 默认配置, Web认证使用Session驱动
         'web' => [
             'driver' => 'session',
             'provider' => 'users',
         ],
 
-        //后台API认证使用JWT驱动
+        // 后台API认证使用JWT驱动
         'admin' => [
             'driver' => 'jwt',
             'provider' => 'admins',
         ],
 
-        //前台API认证使用JWT驱动
+        // 前台API认证使用JWT驱动
         'user-api' => [
             'driver' => 'jwt',
             'provider' => 'users',
@@ -116,6 +116,12 @@ return [
         'users' => [
             'provider' => 'users',
             'table' => env('AUTH_PASSWORD_RESET_TOKEN_TABLE', 'password_reset_tokens'),
+            'expire' => 60,
+            'throttle' => 60,
+        ],
+        'admins' => [
+            'provider' => 'admins',
+            'table' => env('AUTH_ADMIN_PASSWORD_RESET_TOKEN_TABLE', 'admin_password_reset_tokens'),
             'expire' => 60,
             'throttle' => 60,
         ],
