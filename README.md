@@ -203,10 +203,27 @@ composer install --no-dev --optimize-autoloader
 #    仅首次生成；重复执行会使已签发的 token 全部失效
 php artisan jwt:secret
 
-# 3. 构建前端（对应 vite.frontend.config.js，输出 dist/）
+# 3. 安装前端依赖
 npm ci
-npm run build:frontend
 
+# 选择一种生产构建方式
+```
+
+Laravel + Blade 部署：页面仍由 Laravel `public/index.php` 和 Blade 提供，Vite 只构建 Blade 引用的资源到 `public/build/`：
+
+```bash
+npm run build
+```
+
+独立 Vue SPA 部署：构建完整 `index.html` 到 `dist/`，由 Nginx 直接提供前端页面；本文下面的 Nginx 示例对应此方式：
+
+```bash
+npm run build:frontend
+```
+
+两种方式共用源码，但生产部署选择一种即可。
+
+```bash
 # 4. 清理缓存、迁移并初始化基础数据
 php artisan optimize:clear
 php artisan migrate --force
@@ -236,7 +253,9 @@ chmod -R 775 storage bootstrap/cache
 git restore bootstrap/cache storage
 ```
 
-### Nginx 参考配置
+### Nginx 参考配置（独立 SPA / `npm run build:frontend`）
+
+此配置将 Nginx 根目录指向 `dist/`，静态提供 Vue SPA；API、健康检查及未命中的前端路径转给 Laravel。它不适用于 `npm run build` 的 `public/build/` 资源构建模式。若采用 Laravel + Blade 模式，应将 Nginx 根目录指向 Laravel 的 `public/`，并将页面请求交给 Laravel `public/index.php`，由 Blade 的 `@vite(...)` 加载 `public/build/manifest.json` 中的资源。
 
 ```nginx
 server {
