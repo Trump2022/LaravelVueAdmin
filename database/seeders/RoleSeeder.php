@@ -23,17 +23,17 @@ class RoleSeeder extends Seeder
             ],
             [
                 'code' => null,
-                'name' => '总经理',
+                'name' => '角色1',
                 'remark' => '普通管理员',
             ],
             [
                 'code' => null,
-                'name' => '财务',
+                'name' => '角色2',
                 'remark' => '普通管理员',
             ],
             [
                 'code' => null,
-                'name' => '人事',
+                'name' => '角色3',
                 'remark' => '普通管理员',
             ],
         ];

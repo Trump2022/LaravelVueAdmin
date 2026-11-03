@@ -22,6 +22,7 @@ async function editOwnProfile() {
 
 const email = ref('');
 const password = ref('');
+const forgotPasswordMode = ref(false);
 const admin = ref(null);
 const errorMessage = ref('');
 const loading = ref(false);
@@ -31,6 +32,8 @@ let successMessageTimer = null;
 
 const route = useRoute();
 const router = useRouter();
+const tokenKey = 'admin_access_token';
+const tokenRotatedAtKey = 'admin_access_token_rotated_at';
 
 const siteTitles = ref({});
 
@@ -46,6 +49,34 @@ function applySiteTitle() {
 }
 
 watch(() => route.meta.withAdmin, applySiteTitle);
+
+watch(
+    () => route.meta.withAdmin,
+    async (requiresAdmin) => {
+        if (!requiresAdmin) {
+            authReady.value = true;
+            return;
+        }
+
+        authReady.value = false;
+        errorMessage.value = '';
+
+        try {
+            if (localStorage.getItem(tokenKey)) {
+                admin.value = await apiRequest('/api/admin/me');
+            } else {
+                admin.value = null;
+            }
+        } catch (error) {
+            if (error.status !== 401) {
+                errorMessage.value = error.message;
+            }
+        } finally {
+            authReady.value = true;
+        }
+    },
+    { immediate: true },
+);
 
 async function loadSiteTitles() {
     try {
@@ -65,10 +96,6 @@ async function loadSiteTitles() {
         // 请求失败时保留默认标题。
     }
 }
-
-// JWT token 存储
-const tokenKey = 'admin_access_token';
-const tokenRotatedAtKey = 'admin_access_token_rotated_at';
 
 function saveToken(accessToken) {
     localStorage.setItem(tokenKey, accessToken);
@@ -159,30 +186,6 @@ onMounted(async () => {
     await router.isReady();
 
     void loadSiteTitles();
-
-    if (!route.meta.withAdmin) {
-        return;
-    }
-
-    // try {
-    //     admin.value = await apiRequest('/api/admin/me');
-    // } catch (error) {
-    //     if (error.status !== 401) {
-    //         errorMessage.value = error.message;
-    //     }
-    // }
-
-    try {
-        if (localStorage.getItem(tokenKey)) {
-            admin.value = await apiRequest('/api/admin/me');
-        }
-    } catch (error) {
-        if (error.status !== 401) {
-            errorMessage.value = error.message;
-        }
-    } finally {
-        authReady.value = true;
-    }
 });
 
 function handleAuthExpired() {
@@ -228,6 +231,25 @@ async function login() {
         admin.value = adminData;
 
         password.value = '';
+    } catch (error) {
+        errorMessage.value = error.message;
+    } finally {
+        loading.value = false;
+    }
+}
+
+async function sendAdminPasswordResetLink() {
+    loading.value = true;
+    errorMessage.value = '';
+    successMessage.value = '';
+
+    try {
+        const response = await apiRequest('/api/admin/forgot-password', {
+            method: 'POST',
+            body: JSON.stringify({ email: email.value }),
+        });
+
+        successMessage.value = response.message;
     } catch (error) {
         errorMessage.value = error.message;
     } finally {
@@ -310,8 +332,10 @@ async function logout() {
                 </AdminLayout>
             </template>
 
-            <form v-else @submit.prevent="login">
-                <h1 class="text-2xl font-bold">管理员登录</h1>
+            <form v-else @submit.prevent="forgotPasswordMode ? sendAdminPasswordResetLink() : login()">
+                <h1 class="text-2xl font-bold">
+                    {{ forgotPasswordMode ? '找回管理员密码' : '管理员登录' }}
+                </h1>
 
                 <label class="mt-6 block">
                     <span class="text-sm font-medium">邮箱</span>
@@ -324,7 +348,7 @@ async function logout() {
                     >
                 </label>
 
-                <label class="mt-4 block">
+                <label v-if="!forgotPasswordMode" class="mt-4 block">
                     <span class="text-sm font-medium">密码</span>
                     <input
                         v-model="password"
@@ -338,13 +362,33 @@ async function logout() {
                 <p v-if="errorMessage" class="mt-4 text-sm text-red-600">
                     {{ errorMessage }}
                 </p>
+                <p v-if="successMessage" class="mt-4 text-sm text-emerald-700" role="status">
+                    {{ successMessage }}
+                </p>
 
                 <button
                     type="submit"
                     :disabled="loading"
                     class="mt-6 w-full rounded bg-blue-600 px-4 py-2 text-white disabled:opacity-50"
                 >
-                    {{ loading ? '登录中…' : '登录' }}
+                    {{ loading ? '处理中…' : forgotPasswordMode ? '发送重置邮件' : '登录' }}
+                </button>
+
+                <button
+                    v-if="forgotPasswordMode"
+                    type="button"
+                    class="mt-4 text-sm text-blue-700 hover:underline"
+                    @click="forgotPasswordMode = false; errorMessage = ''; successMessage = ''"
+                >
+                    返回登录
+                </button>
+                <button
+                    v-else
+                    type="button"
+                    class="mt-4 text-sm text-blue-700 hover:underline"
+                    @click="forgotPasswordMode = true; errorMessage = ''; successMessage = ''"
+                >
+                    忘记密码？
                 </button>
             </form>
 

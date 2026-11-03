@@ -2,12 +2,13 @@
 
 namespace Tests\Feature;
 
-use App\Models\Permission;
-use App\Models\Role;
-use Illuminate\Foundation\Testing\RefreshDatabase;
-use Illuminate\Foundation\Testing\WithFaker;
-use Tests\TestCase;
 use App\Models\Admin;
+use Illuminate\Auth\Notifications\ResetPassword;
+use Illuminate\Foundation\Testing\RefreshDatabase;
+use Illuminate\Support\Facades\Hash;
+use Illuminate\Support\Facades\Notification;
+use Illuminate\Support\Facades\Password;
+use Tests\TestCase;
 
 class AdminAuthenticationTest extends TestCase
 {
@@ -26,6 +27,49 @@ class AdminAuthenticationTest extends TestCase
     public function test_guest_cannot_access_admin_api(): void
     {
         $this->getJson('/api/admin/me')->assertUnauthorized();
+    }
+
+    public function test_admin_can_request_a_password_reset_email(): void
+    {
+        Notification::fake();
+        $admin = Admin::create([
+            'name' => '测试管理员',
+            'email' => 'admin@example.test',
+            'password' => 'old-password',
+        ]);
+
+        $this->postJson('/api/admin/forgot-password', ['email' => $admin->email])
+            ->assertAccepted()
+            ->assertJsonPath('message', '如果该邮箱对应管理员账号，重置邮件将发送。');
+
+        Notification::assertSentTo($admin, ResetPassword::class);
+    }
+
+    public function test_unknown_admin_email_gets_the_same_password_reset_response(): void
+    {
+        $this->postJson('/api/admin/forgot-password', ['email' => 'missing@example.test'])
+            ->assertAccepted()
+            ->assertJsonPath('message', '如果该邮箱对应管理员账号，重置邮件将发送。');
+    }
+
+    public function test_admin_can_reset_password_with_a_valid_token(): void
+    {
+        $admin = Admin::create([
+            'name' => '测试管理员',
+            'email' => 'admin@example.test',
+            'password' => 'old-password',
+        ]);
+        $token = Password::broker('admins')->createToken($admin);
+
+        $this->postJson('/api/admin/reset-password', [
+            'email' => $admin->email,
+            'token' => $token,
+            'password' => 'new-secure-password',
+            'password_confirmation' => 'new-secure-password',
+        ])->assertOk()
+            ->assertJsonPath('message', '密码已重置，请使用新密码登录。');
+
+        $this->assertTrue(Hash::check('new-secure-password', $admin->fresh()->password));
     }
 
     public function test_admin_guard_can_access_admin_api(): void
