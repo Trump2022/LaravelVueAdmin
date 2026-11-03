@@ -88,7 +88,8 @@ APP_URL=https://你的正式域名
 `FRONTEND_OUT_DIR` 同时控制生产环境的前端入口和独立 SPA 的构建输出目录：
 
 ```dotenv
-# 留空：Laravel Blade 模式；填写项目内的相对目录：独立 Vue SPA 模式
+# Laravel运行时仅在APP_ENV非local时使用：留空=Blade；填写相对目录=独立SPA
+# 执行 npm run build:frontend 时，无论环境都必须填写输出目录
 FRONTEND_OUT_DIR=
 ```
 
