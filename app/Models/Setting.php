@@ -10,6 +10,9 @@ use Illuminate\Database\Eloquent\Model;
  */
 class Setting extends Model
 {
+    /**
+     * @var string[]
+     */
     protected $fillable = [
         'setting_key',
         'name',
@@ -18,6 +21,11 @@ class Setting extends Model
         'json_value',
     ];
 
+    /**
+     * Get the attributes that should be cast.
+     *
+     * @return array<string, string>
+     */
     protected function casts(): array
     {
         return [

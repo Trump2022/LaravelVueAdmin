@@ -16,10 +16,14 @@ use PHPOpenSourceSaver\JWTAuth\Contracts\JWTSubject;
 #[Fillable(['name', 'email', 'password'])]
 #[Hidden(['password', 'remember_token'])]
 class Admin extends Authenticatable implements JWTSubject
-    // class Admin extends Authenticatable//guards的driver不是JWT是session时,这样继续就行了
 {
     use Notifiable, SoftDeletes;
 
+    /**
+     * Get the attributes that should be cast.
+     *
+     * @return array<string, string>
+     */
     protected function casts(): array
     {
         return [
@@ -30,21 +34,41 @@ class Admin extends Authenticatable implements JWTSubject
         ];
     }
 
+    /**
+     * Get the identifier that will be stored in the subject claim of the JWT.
+     *
+     * @return mixed
+     */
     public function getJWTIdentifier(): mixed
     {
         return $this->getKey();
     }
 
+    /**
+     * Return a key value array, containing any custom claims to be added to the JWT.
+     *
+     * @return array
+     */
     public function getJWTCustomClaims(): array
     {
         return [];
     }
 
+    /**
+     * 管理员角色关联
+     *
+     * @return BelongsToMany
+     */
     public function roles(): BelongsToMany
     {
         return $this->belongsToMany(Role::class, 'admin_role', 'admin_id', 'role_id');
     }
 
+    /**
+     * 检查管理员是否是超级管理员
+     *
+     * @return bool
+     */
     public function isSuperAdmin(): bool
     {
         return $this->roles()
@@ -52,6 +76,11 @@ class Admin extends Authenticatable implements JWTSubject
             ->exists();
     }
 
+    /**
+     * 检查管理员是否是开发者
+     *
+     * @return bool
+     */
     public function isDeveloper(): bool
     {
         return $this->roles()
@@ -59,6 +88,13 @@ class Admin extends Authenticatable implements JWTSubject
             ->exists();
     }
 
+    /**
+     * 检查管理员是否有API权限
+     *
+     * @param string $routeName
+     * @param string $method
+     * @return bool
+     */
     public function hasApiPermission(string $routeName, string $method): bool
     {
         $this->loadMissing('roles:id,code');
@@ -99,6 +135,13 @@ class Admin extends Authenticatable implements JWTSubject
             ->exists();
     }
 
+    /**
+     * 验证数据
+     *
+     * @param Request $request
+     * @param Admin $admin
+     * @return array
+     */
     public static function getValidate(Request $request, Admin $admin): array
     {
         return $request->validate([

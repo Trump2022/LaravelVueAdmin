@@ -35,11 +35,19 @@ class User extends Authenticatable implements JWTSubject, MustVerifyEmail
         ];
     }
 
+    /**
+     * Get the factory instance for the model.
+     *
+     * @return mixed
+     */
     public function getJWTIdentifier(): mixed
     {
         return $this->getKey();
     }
 
+    /**
+     * @return array
+     */
     public function getJWTCustomClaims(): array
     {
         return [];

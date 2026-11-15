@@ -17,6 +17,10 @@ use PHPOpenSourceSaver\JWTAuth\Exceptions\JWTException;
 
 class AuthController extends Controller
 {
+    /**
+     * @param Request $request
+     * @return JsonResponse
+     */
     public function sendPasswordResetLink(Request $request): JsonResponse
     {
         $data = $request->validate([
@@ -30,6 +34,10 @@ class AuthController extends Controller
         ], 202);
     }
 
+    /**
+     * @param Request $request
+     * @return JsonResponse
+     */
     public function resetPassword(Request $request): JsonResponse
     {
         $data = $request->validate([
@@ -59,6 +67,9 @@ class AuthController extends Controller
 
     /**
      * 登录 (适用于guards的driver不是JWT是session)
+     *
+     * @param Request $request
+     * @return JsonResponse
      */
     public function loginAsSession(Request $request): JsonResponse
     {
@@ -92,6 +103,8 @@ class AuthController extends Controller
 
     /**
      * 刷新 JWT Token
+     *
+     * @return JsonResponse
      */
     public function refresh(): JsonResponse
     {
@@ -112,6 +125,10 @@ class AuthController extends Controller
         ]);
     }
 
+    /**
+     * @param Request $request
+     * @return JsonResponse
+     */
     public function login(Request $request): JsonResponse
     {
         $credentials = $request->validate([
@@ -148,7 +165,8 @@ class AuthController extends Controller
     }
 
     /**
-     * 登出 (适用于guards的driver不是JWT是session)
+     * @param Request $request
+     * @return JsonResponse
      */
     public function logoutAsSession(Request $request): JsonResponse
     {
@@ -160,6 +178,9 @@ class AuthController extends Controller
         ]);
     }
 
+    /**
+     * @return JsonResponse
+     */
     public function logout(): JsonResponse
     {
         Auth::guard('admin')->logout();
@@ -169,6 +190,10 @@ class AuthController extends Controller
         ]);
     }
 
+    /**
+     * @param Request $request
+     * @return JsonResponse
+     */
     public function me(Request $request): JsonResponse
     {
         $admin = $request->user('admin');
@@ -196,6 +221,10 @@ class AuthController extends Controller
         ]);
     }
 
+    /**
+     * @param Request $request
+     * @return JsonResponse
+     */
     public function updateOwnPassword(Request $request): JsonResponse
     {
         $validated = $request->validate([
@@ -219,6 +248,10 @@ class AuthController extends Controller
         ]);
     }
 
+    /**
+     * @param Admin $admin
+     * @return array
+     */
     private function adminData(Admin $admin): array
     {
         $admin->loadMissing('roles:id,code');
