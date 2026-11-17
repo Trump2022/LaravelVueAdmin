@@ -290,6 +290,25 @@ class PermissionController extends Controller
             'remark' => ['sometimes', 'nullable', 'string', 'max:255'],
         ]);
 
+        if (isset($validated['status']) && (int) $validated['status'] === 0) {
+            $permissionId = $permission->getKey();
+
+            $containsMenuManagement = Permission::query()
+                ->where('type', 2)
+                ->where('path', '/admin/permissions')
+                ->where(function (Builder $query) use ($permissionId): void {
+                    $query->whereKey($permissionId)
+                        ->orWhere('id_path', 'like', '%,'.$permissionId.',%');
+                })
+                ->exists();
+
+            if ($containsMenuManagement) {
+                throw ValidationException::withMessages([
+                    'status' => '菜单管理及其上级菜单不能停用。',
+                ]);
+            }
+        }
+
         $type = (int) ($validated['type'] ?? $permission->type);
         $path = array_key_exists('path', $validated)
             ? $validated['path']
