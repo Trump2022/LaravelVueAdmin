@@ -6,6 +6,10 @@ import router, { pageRouteNames } from '../../router';
 import AdminMenuTree from './AdminMenuTree.vue';
 
 const props = defineProps({
+    systemName: {
+        type: String,
+        default: '',
+    },
     admin: {
         type: Object,
         required: true,
@@ -119,7 +123,7 @@ function handleAccountCommand(command) {
             class="border-r border-slate-200 bg-white transition-all duration-200">
             <div class="flex h-16 items-center justify-center border-b border-slate-200">
                 <strong v-if="!isCollapsed" class="text-lg text-slate-800">
-                    Laravel后台
+                    {{ props.systemName.trim() || 'Laravel后台' }}
                 </strong>
                 <el-icon v-else :size="22" class="text-blue-600">
                     <MenuIcon />

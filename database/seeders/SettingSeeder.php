@@ -14,11 +14,11 @@ class SettingSeeder extends Seeder
     public function run(): void
     {
         Setting::firstOrCreate(
-            ['setting_key' => 'web_title'],
+            ['setting_key' => 'system_name'],
             [
-                'name' => '网站标题',
+                'name' => '系统名称',
                 'type' => 1,
-                'setting_value' => '欢迎你',
+                'setting_value' => 'Laravel后台',
                 'json_value' => null,
             ],
         );
@@ -29,6 +29,16 @@ class SettingSeeder extends Seeder
                 'name' => '后台title',
                 'type' => 1,
                 'setting_value' => '后台',
+                'json_value' => null,
+            ],
+        );
+
+        Setting::firstOrCreate(
+            ['setting_key' => 'web_title'],
+            [
+                'name' => '前台title',
+                'type' => 1,
+                'setting_value' => '欢迎你',
                 'json_value' => null,
             ],
         );

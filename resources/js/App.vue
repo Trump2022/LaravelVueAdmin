@@ -81,7 +81,7 @@ watch(
 async function loadSiteTitles() {
     try {
         const response = await fetch(
-            '/api/web/site-settings?keys=web_title,web_admin_title',
+            '/api/web/site-settings?keys=web_title,web_admin_title,system_name',
             { headers: { Accept: 'application/json' } },
         );
 
@@ -146,31 +146,6 @@ function clearSuccessMessage() {
     }
 }
 
-async function loadSiteTitle() {
-    try {
-        const response = await fetch(
-            '/api/web/site-settings?keys=web_title',
-            {
-                headers: { Accept: 'application/json' },
-                credentials: 'same-origin',
-            },
-        );
-
-        if (!response.ok) {
-            return;
-        }
-
-        const result = await response.json();
-        const title = result.data?.web_title;
-
-        if (typeof title === 'string' && title.trim() !== '') {
-            document.title = title.trim();
-        }
-    } catch {
-        // 请求失败时保留 Blade 中的默认标题。
-    }
-}
-
 onUnmounted(() => {
     if (successMessageTimer !== null) {
         clearTimeout(successMessageTimer);
@@ -180,11 +155,7 @@ onUnmounted(() => {
 
 onMounted(async () => {
     window.addEventListener('admin-auth-expired', handleAuthExpired);
-
-    void loadSiteTitle();
-
     await router.isReady();
-
     void loadSiteTitles();
 });
 
@@ -301,6 +272,7 @@ async function logout() {
                 <AdminLayout
                     :admin="admin"
                     :active-path="route.path"
+                    :system-name="typeof siteTitles.system_name === 'string' ? siteTitles.system_name : ''"
                     @select-page="selectPage"
                     @change-password="showOwnPasswordForm = true"
                     @edit-profile="editOwnProfile"
